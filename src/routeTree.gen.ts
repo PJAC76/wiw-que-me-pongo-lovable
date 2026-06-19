@@ -9,45 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RecommendationsRouteImport } from './routes/recommendations'
-import { Route as OutfitsRouteImport } from './routes/outfits'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as FeedRouteImport } from './routes/feed'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWardrobeRouteImport } from './routes/_authenticated/wardrobe'
+import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
+import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 
-const WardrobeRoute = WardrobeRouteImport.update({
-  id: '/wardrobe',
-  path: '/wardrobe',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RecommendationsRoute = RecommendationsRouteImport.update({
-  id: '/recommendations',
-  path: '/recommendations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OutfitsRoute = OutfitsRouteImport.update({
-  id: '/outfits',
-  path: '/outfits',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedRoute = FeedRouteImport.update({
-  id: '/feed',
-  path: '/feed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -64,105 +44,115 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWardrobeRoute = AuthenticatedWardrobeRouteImport.update({
+  id: '/wardrobe',
+  path: '/wardrobe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecommendationsRoute =
+  AuthenticatedRecommendationsRouteImport.update({
+    id: '/recommendations',
+    path: '/recommendations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOutfitsRoute = AuthenticatedOutfitsRouteImport.update({
+  id: '/outfits',
+  path: '/outfits',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
+  id: '/feed',
+  path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
-  '/outfits': typeof OutfitsRoute
-  '/recommendations': typeof RecommendationsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/wardrobe': typeof WardrobeRoute
+  '/feed': typeof AuthenticatedFeedRoute
+  '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/wardrobe': typeof AuthenticatedWardrobeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
-  '/outfits': typeof OutfitsRoute
-  '/recommendations': typeof RecommendationsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/wardrobe': typeof WardrobeRoute
+  '/feed': typeof AuthenticatedFeedRoute
+  '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/wardrobe': typeof AuthenticatedWardrobeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
-  '/outfits': typeof OutfitsRoute
-  '/recommendations': typeof RecommendationsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/wardrobe': typeof WardrobeRoute
+  '/_authenticated/feed': typeof AuthenticatedFeedRoute
+  '/_authenticated/outfits': typeof AuthenticatedOutfitsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
-    | '/feed'
     | '/onboarding'
-    | '/outfits'
-    | '/recommendations'
     | '/reset-password'
-    | '/wardrobe'
+    | '/feed'
+    | '/outfits'
     | '/profile'
+    | '/recommendations'
+    | '/wardrobe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/feed'
     | '/onboarding'
-    | '/outfits'
-    | '/recommendations'
     | '/reset-password'
-    | '/wardrobe'
+    | '/feed'
+    | '/outfits'
     | '/profile'
+    | '/recommendations'
+    | '/wardrobe'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
-    | '/feed'
     | '/onboarding'
-    | '/outfits'
-    | '/recommendations'
     | '/reset-password'
-    | '/wardrobe'
+    | '/_authenticated/feed'
+    | '/_authenticated/outfits'
     | '/_authenticated/profile'
+    | '/_authenticated/recommendations'
+    | '/_authenticated/wardrobe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  FeedRoute: typeof FeedRoute
   OnboardingRoute: typeof OnboardingRoute
-  OutfitsRoute: typeof OutfitsRoute
-  RecommendationsRoute: typeof RecommendationsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  WardrobeRoute: typeof WardrobeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/wardrobe': {
-      id: '/wardrobe'
-      path: '/wardrobe'
-      fullPath: '/wardrobe'
-      preLoaderRoute: typeof WardrobeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -170,32 +160,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/recommendations': {
-      id: '/recommendations'
-      path: '/recommendations'
-      fullPath: '/recommendations'
-      preLoaderRoute: typeof RecommendationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/outfits': {
-      id: '/outfits'
-      path: '/outfits'
-      fullPath: '/outfits'
-      preLoaderRoute: typeof OutfitsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feed': {
-      id: '/feed'
-      path: '/feed'
-      fullPath: '/feed'
-      preLoaderRoute: typeof FeedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -219,6 +188,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/wardrobe': {
+      id: '/_authenticated/wardrobe'
+      path: '/wardrobe'
+      fullPath: '/wardrobe'
+      preLoaderRoute: typeof AuthenticatedWardrobeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recommendations': {
+      id: '/_authenticated/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof AuthenticatedRecommendationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -226,15 +209,37 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/outfits': {
+      id: '/_authenticated/outfits'
+      path: '/outfits'
+      fullPath: '/outfits'
+      preLoaderRoute: typeof AuthenticatedOutfitsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/feed': {
+      id: '/_authenticated/feed'
+      path: '/feed'
+      fullPath: '/feed'
+      preLoaderRoute: typeof AuthenticatedFeedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
+  AuthenticatedOutfitsRoute: typeof AuthenticatedOutfitsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+  AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
+  AuthenticatedWardrobeRoute: typeof AuthenticatedWardrobeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedFeedRoute: AuthenticatedFeedRoute,
+  AuthenticatedOutfitsRoute: AuthenticatedOutfitsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+  AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
+  AuthenticatedWardrobeRoute: AuthenticatedWardrobeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -244,23 +249,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  FeedRoute: FeedRoute,
   OnboardingRoute: OnboardingRoute,
-  OutfitsRoute: OutfitsRoute,
-  RecommendationsRoute: RecommendationsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  WardrobeRoute: WardrobeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
