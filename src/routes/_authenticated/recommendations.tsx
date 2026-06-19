@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceholderScreen } from "@/components/placeholder-screen";
 
-export const Route = createFileRoute("/recommendations")({
+export const Route = createFileRoute("/_authenticated/recommendations")({
   head: () => ({
     meta: [
       { title: "Recomendaciones IA — WIW" },
