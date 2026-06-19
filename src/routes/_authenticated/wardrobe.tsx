@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PlaceholderScreen } from "@/components/placeholder-screen";
 
-export const Route = createFileRoute("/wardrobe")({
+export const Route = createFileRoute("/_authenticated/wardrobe")({
   head: () => ({
     meta: [
       { title: "Mi Armario — WIW" },
