@@ -11,12 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
-import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as OutfitsRouteImport } from './routes/outfits'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as FeedRouteImport } from './routes/feed'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
@@ -26,11 +26,6 @@ const WardrobeRoute = WardrobeRouteImport.update({
 const RecommendationsRoute = RecommendationsRouteImport.update({
   id: '/recommendations',
   path: '/recommendations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OutfitsRoute = OutfitsRouteImport.update({
@@ -58,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/_authenticated/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,9 +65,9 @@ export interface FileRoutesByFullPath {
   '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
-  '/profile': typeof ProfileRoute
   '/recommendations': typeof RecommendationsRoute
   '/wardrobe': typeof WardrobeRoute
+  '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -75,9 +75,9 @@ export interface FileRoutesByTo {
   '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
-  '/profile': typeof ProfileRoute
   '/recommendations': typeof RecommendationsRoute
   '/wardrobe': typeof WardrobeRoute
+  '/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,9 +86,9 @@ export interface FileRoutesById {
   '/feed': typeof FeedRoute
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
-  '/profile': typeof ProfileRoute
   '/recommendations': typeof RecommendationsRoute
   '/wardrobe': typeof WardrobeRoute
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -98,9 +98,9 @@ export interface FileRouteTypes {
     | '/feed'
     | '/onboarding'
     | '/outfits'
-    | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -108,9 +108,9 @@ export interface FileRouteTypes {
     | '/feed'
     | '/onboarding'
     | '/outfits'
-    | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/profile'
   id:
     | '__root__'
     | '/'
@@ -118,9 +118,9 @@ export interface FileRouteTypes {
     | '/feed'
     | '/onboarding'
     | '/outfits'
-    | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/_authenticated/profile'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -129,9 +129,9 @@ export interface RootRouteChildren {
   FeedRoute: typeof FeedRoute
   OnboardingRoute: typeof OnboardingRoute
   OutfitsRoute: typeof OutfitsRoute
-  ProfileRoute: typeof ProfileRoute
   RecommendationsRoute: typeof RecommendationsRoute
   WardrobeRoute: typeof WardrobeRoute
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -148,13 +148,6 @@ declare module '@tanstack/react-router' {
       path: '/recommendations'
       fullPath: '/recommendations'
       preLoaderRoute: typeof RecommendationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/outfits': {
@@ -192,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -201,9 +201,9 @@ const rootRouteChildren: RootRouteChildren = {
   FeedRoute: FeedRoute,
   OnboardingRoute: OnboardingRoute,
   OutfitsRoute: OutfitsRoute,
-  ProfileRoute: ProfileRoute,
   RecommendationsRoute: RecommendationsRoute,
   WardrobeRoute: WardrobeRoute,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
