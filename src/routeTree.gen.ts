@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as OutfitsRouteImport } from './routes/outfits'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -22,6 +23,11 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 const WardrobeRoute = WardrobeRouteImport.update({
   id: '/wardrobe',
   path: '/wardrobe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecommendationsRoute = RecommendationsRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
   '/recommendations': typeof RecommendationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/wardrobe': typeof WardrobeRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
   '/recommendations': typeof RecommendationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/wardrobe': typeof WardrobeRoute
   '/profile': typeof AuthenticatedProfileRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/outfits': typeof OutfitsRoute
   '/recommendations': typeof RecommendationsRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/wardrobe': typeof WardrobeRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
 }
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/outfits'
     | '/recommendations'
+    | '/reset-password'
     | '/wardrobe'
     | '/profile'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/outfits'
     | '/recommendations'
+    | '/reset-password'
     | '/wardrobe'
     | '/profile'
   id:
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/outfits'
     | '/recommendations'
+    | '/reset-password'
     | '/wardrobe'
     | '/_authenticated/profile'
   fileRoutesById: FileRoutesById
@@ -138,6 +150,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   OutfitsRoute: typeof OutfitsRoute
   RecommendationsRoute: typeof RecommendationsRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   WardrobeRoute: typeof WardrobeRoute
 }
 
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/wardrobe'
       fullPath: '/wardrobe'
       preLoaderRoute: typeof WardrobeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recommendations': {
@@ -228,6 +248,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   OutfitsRoute: OutfitsRoute,
   RecommendationsRoute: RecommendationsRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   WardrobeRoute: WardrobeRoute,
 }
 export const routeTree = rootRouteImport
