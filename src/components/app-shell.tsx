@@ -1,14 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Shirt, Sparkles, Compass, User, Layers } from "lucide-react";
+import { Shirt, Sparkles, Compass, User, Layers, LogIn, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth, signOut } from "@/hooks/use-auth";
 
 const tabs = [
-  { to: "/wardrobe", label: "Armario", icon: Shirt },
-  { to: "/outfits", label: "Outfits", icon: Layers },
-  { to: "/recommendations", label: "Para hoy", icon: Sparkles },
-  { to: "/feed", label: "Feed", icon: Compass },
-  { to: "/profile", label: "Perfil", icon: User },
+  { to: "/wardrobe", label: "Armario", icon: Shirt, auth: true },
+  { to: "/outfits", label: "Outfits", icon: Layers, auth: true },
+  { to: "/recommendations", label: "Para hoy", icon: Sparkles, auth: true },
+  { to: "/feed", label: "Feed", icon: Compass, auth: true },
+  { to: "/profile", label: "Perfil", icon: User, auth: true },
 ] as const;
 
 export function AppShell({
