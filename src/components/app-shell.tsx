@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Shirt, Sparkles, Compass, User, Layers } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,6 @@ export function AppShell({
   eyebrow?: string;
   rightSlot?: ReactNode;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
   const visibleTabs = user ? tabs : [];
 
@@ -58,28 +57,31 @@ export function AppShell({
               visibleTabs.length === 1 && "grid-cols-1"
             )}
           >
-            {visibleTabs.map(({ to, label, icon: Icon }) => {
-              const active = pathname.startsWith(to);
-              return (
-                <li key={to}>
-                  <Link
-                    to={to}
-                    className={cn(
-                      "flex flex-col items-center gap-1 py-3 text-[10px] tracking-wider uppercase transition-colors",
-                      active ? "text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5",
-                        active ? "stroke-[1.5]" : "stroke-[1.25]"
-                      )}
-                    />
-                    <span>{label}</span>
-                  </Link>
-                </li>
-              );
-            })}
+            {visibleTabs.map((tab) => (
+              <li key={tab.to}>
+                <Link
+                  to={tab.to}
+                  activeOptions={{ exact: false }}
+                  className="flex flex-col items-center gap-1 py-3 text-[10px] tracking-wider uppercase transition-colors text-muted-foreground"
+                  activeProps={{
+                    className:
+                      "flex flex-col items-center gap-1 py-3 text-[10px] tracking-wider uppercase transition-colors text-foreground",
+                  }}
+                >
+                  {({ isActive }: { isActive: boolean }) => (
+                    <>
+                      <tab.icon
+                        className={cn(
+                          "h-5 w-5",
+                          isActive ? "stroke-[1.5]" : "stroke-[1.25]"
+                        )}
+                      />
+                      <span>{tab.label}</span>
+                    </>
+                  )}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
       )}
