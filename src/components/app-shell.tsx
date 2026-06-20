@@ -23,6 +23,7 @@ export function AppShell({
   eyebrow?: string;
   rightSlot?: ReactNode;
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
   const visibleTabs = user ? tabs : [];
 
