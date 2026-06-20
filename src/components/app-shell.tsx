@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Shirt, Sparkles, Compass, User, Layers } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,6 @@ export function AppShell({
   eyebrow?: string;
   rightSlot?: ReactNode;
 }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
   const visibleTabs = user ? tabs : [];
 
