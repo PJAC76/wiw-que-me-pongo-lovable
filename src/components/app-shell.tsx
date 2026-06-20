@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Shirt, Sparkles, Compass, User, Layers, LogIn, LogOut } from "lucide-react";
+import { Shirt, Sparkles, Compass, User, Layers } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth, signOut } from "@/hooks/use-auth";
