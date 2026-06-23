@@ -98,6 +98,45 @@ async def assert_active(page, expected: str, step: str):
     print(f"  ✓ {step}: pestaña activa = {label}")
 
 
+async def dump_diagnostics(page, tag: str):
+    """Vuelca URL actual, cookies, localStorage y entradas sb-* a stdout y captura."""
+    try:
+        url = page.url
+        cookies = await page.context.cookies()
+        ls = await page.evaluate(
+            """() => {
+                const out = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    const v = localStorage.getItem(k) || "";
+                    out[k] = v.length > 200 ? v.slice(0, 200) + `…(+${v.length - 200} chars)` : v;
+                }
+                return out;
+            }"""
+        )
+        sb_keys = [k for k in ls.keys() if k.startswith("sb-")]
+        print(f"  ── diagnóstico [{tag}] ──")
+        print(f"     URL actual : {url}")
+        print(f"     cookies    : {len(cookies)} → {[c['name'] for c in cookies]}")
+        print(f"     localStorage keys ({len(ls)}): {list(ls.keys())}")
+        print(f"     sb-* keys  : {sb_keys or '(ninguna — sesión Supabase ausente)'}")
+        for k in sb_keys:
+            print(f"       · {k} = {ls[k][:120]}…")
+        env_seen = {
+            "LOVABLE_BROWSER_SUPABASE_STORAGE_KEY": bool(os.environ.get("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY")),
+            "LOVABLE_BROWSER_SUPABASE_SESSION_JSON": bool(os.environ.get("LOVABLE_BROWSER_SUPABASE_SESSION_JSON")),
+            "LOVABLE_BROWSER_SUPABASE_ACCESS_TOKEN": bool(os.environ.get("LOVABLE_BROWSER_SUPABASE_ACCESS_TOKEN")),
+            "TEST_EMAIL": bool(os.environ.get("TEST_EMAIL")),
+            "TEST_PASSWORD": bool(os.environ.get("TEST_PASSWORD")),
+        }
+        print(f"     env vars   : {env_seen}")
+        shot = SCREENSHOTS / f"diag_{tag}.png"
+        await page.screenshot(path=str(shot))
+        print(f"     captura    : {shot}")
+    except Exception as e:
+        print(f"  ! dump_diagnostics({tag}) falló: {e}")
+
+
 async def main():
     print("Resolviendo sesión…")
     sk, sj = await wait_for_session_env()
@@ -108,14 +147,19 @@ async def main():
         page = await ctx.new_page()
 
         await page.goto(BASE, wait_until="domcontentloaded")
+        await dump_diagnostics(page, "00_initial_root")
 
         if sk and sj:
             await page.evaluate(
                 f"window.localStorage.setItem({json.dumps(sk)}, {json.dumps(sj)})"
             )
+            print(f"  ✓ inyectada sesión en localStorage['{sk}'] ({len(sj)} chars)")
+            await dump_diagnostics(page, "01_after_inject")
         else:
-            print("  ! vars del harness vacías; probando login UI…")
+            print("  ! vars del harness vacías; volcando diagnóstico antes de fallback…")
+            await dump_diagnostics(page, "01_env_empty_pre_login")
             ok = await ui_login(page)
+            await dump_diagnostics(page, "02_after_ui_login_attempt")
             if not ok:
                 print(
                     "\nERROR: no hay sesión disponible.\n"
@@ -125,6 +169,7 @@ async def main():
                     "  • O exporta credenciales de prueba en el sandbox:\n"
                     "      TEST_EMAIL=tu@correo.com\n"
                     "      TEST_PASSWORD=********\n"
+                    "  Revisa las capturas en tests/e2e/screenshots/diag_*.png\n"
                 )
                 await browser.close()
                 sys.exit(2)
@@ -132,10 +177,12 @@ async def main():
         # Verificación rápida de sesión.
         await page.goto(f"{BASE}/wardrobe", wait_until="domcontentloaded")
         if "/auth" in page.url:
-            print("ERROR: la sesión no es válida; redirige a /auth.")
-            await page.screenshot(path=str(SCREENSHOTS / "no_session.png"))
+            print(f"ERROR: la sesión no es válida; redirige a {page.url}.")
+            await dump_diagnostics(page, "03_redirected_to_auth")
             await browser.close()
             sys.exit(3)
+        await dump_diagnostics(page, "03_session_ok_wardrobe")
+
 
         print("\nCaso 1 — navegación directa a rutas protegidas")
         for path, label in TABS:
