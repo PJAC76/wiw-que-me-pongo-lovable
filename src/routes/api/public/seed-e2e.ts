@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 // Protected by a shared token. DELETE this file after use.
 const SEED_TOKEN = "wiw-e2e-seed-2026-06-24";
 
-export const Route = createFileRoute("/api/public/_seed-e2e")({
+export const Route = createFileRoute("/api/public/seed-e2e")({
   server: {
     handlers: {
       POST: async ({ request }) => {

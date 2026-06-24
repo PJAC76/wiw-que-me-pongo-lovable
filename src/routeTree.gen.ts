@@ -19,7 +19,7 @@ import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
-import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/_seed-e2e'
+import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e2e'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -72,8 +72,8 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiPublicSeedE2eRoute = ApiPublicSeedE2eRouteImport.update({
-  id: '/api/public/_seed-e2e',
-  path: '/api/public',
+  id: '/api/public/seed-e2e',
+  path: '/api/public/seed-e2e',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -87,7 +87,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRoute
-  '/api/public': typeof ApiPublicSeedE2eRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,7 +99,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRoute
-  '/api/public': typeof ApiPublicSeedE2eRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,7 +113,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRoute
-  '/api/public/_seed-e2e': typeof ApiPublicSeedE2eRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,7 +127,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
-    | '/api/public'
+    | '/api/public/seed-e2e'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,7 +139,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
-    | '/api/public'
+    | '/api/public/seed-e2e'
   id:
     | '__root__'
     | '/'
@@ -152,7 +152,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/wardrobe'
-    | '/api/public/_seed-e2e'
+    | '/api/public/seed-e2e'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,10 +236,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/_seed-e2e': {
-      id: '/api/public/_seed-e2e'
-      path: '/api/public'
-      fullPath: '/api/public'
+    '/api/public/seed-e2e': {
+      id: '/api/public/seed-e2e'
+      path: '/api/public/seed-e2e'
+      fullPath: '/api/public/seed-e2e'
       preLoaderRoute: typeof ApiPublicSeedE2eRouteImport
       parentRoute: typeof rootRouteImport
     }
