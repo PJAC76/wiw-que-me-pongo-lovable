@@ -19,6 +19,8 @@ import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
+import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e2e'
+import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -70,6 +72,16 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicSeedE2eRoute = ApiPublicSeedE2eRouteImport.update({
+  id: '/api/public/seed-e2e',
+  path: '/api/public/seed-e2e',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicEnvcheckRoute = ApiPublicEnvcheckRouteImport.update({
+  id: '/api/public/envcheck',
+  path: '/api/public/envcheck',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -81,6 +93,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,6 +106,8 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,6 +121,8 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
+  '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -118,6 +136,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/api/public/envcheck'
+    | '/api/public/seed-e2e'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -129,6 +149,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/api/public/envcheck'
+    | '/api/public/seed-e2e'
   id:
     | '__root__'
     | '/'
@@ -141,6 +163,8 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/wardrobe'
+    | '/api/public/envcheck'
+    | '/api/public/seed-e2e'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -149,6 +173,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicEnvcheckRoute: typeof ApiPublicEnvcheckRoute
+  ApiPublicSeedE2eRoute: typeof ApiPublicSeedE2eRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -223,6 +249,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/seed-e2e': {
+      id: '/api/public/seed-e2e'
+      path: '/api/public/seed-e2e'
+      fullPath: '/api/public/seed-e2e'
+      preLoaderRoute: typeof ApiPublicSeedE2eRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/envcheck': {
+      id: '/api/public/envcheck'
+      path: '/api/public/envcheck'
+      fullPath: '/api/public/envcheck'
+      preLoaderRoute: typeof ApiPublicEnvcheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -251,6 +291,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicEnvcheckRoute: ApiPublicEnvcheckRoute,
+  ApiPublicSeedE2eRoute: ApiPublicSeedE2eRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
