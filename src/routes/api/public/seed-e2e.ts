@@ -16,11 +16,15 @@ export const Route = createFileRoute("/api/public/seed-e2e")({
         const url = process.env.SUPABASE_URL;
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!url || !serviceKey) {
+          const visible = Object.keys(process.env).filter((k) =>
+            /SUPABASE|LOVABLE|SERVICE|SECRET/i.test(k),
+          );
           return new Response(
             JSON.stringify({
               error: "missing_env",
               has_url: Boolean(url),
               has_service_key: Boolean(serviceKey),
+              visible_keys: visible,
             }),
             { status: 500, headers: { "content-type": "application/json" } },
           );
