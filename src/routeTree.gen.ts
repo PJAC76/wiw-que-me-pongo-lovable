@@ -21,6 +21,8 @@ import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
 import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e2e'
 import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
+import { Route as AuthenticatedWardrobeAddRouteImport } from './routes/_authenticated/wardrobe.add'
+import { Route as AuthenticatedWardrobeItemIdRouteImport } from './routes/_authenticated/wardrobe.$itemId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -82,6 +84,18 @@ const ApiPublicEnvcheckRoute = ApiPublicEnvcheckRouteImport.update({
   path: '/api/public/envcheck',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWardrobeAddRoute =
+  AuthenticatedWardrobeAddRouteImport.update({
+    id: '/add',
+    path: '/add',
+    getParentRoute: () => AuthenticatedWardrobeRoute,
+  } as any)
+const AuthenticatedWardrobeItemIdRoute =
+  AuthenticatedWardrobeItemIdRouteImport.update({
+    id: '/$itemId',
+    path: '/$itemId',
+    getParentRoute: () => AuthenticatedWardrobeRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,7 +106,9 @@ export interface FileRoutesByFullPath {
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
-  '/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
@@ -105,7 +121,9 @@ export interface FileRoutesByTo {
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
-  '/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
@@ -120,7 +138,9 @@ export interface FileRoutesById {
   '/_authenticated/outfits': typeof AuthenticatedOutfitsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
-  '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRoute
+  '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/_authenticated/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
 }
@@ -136,6 +156,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/wardrobe/$itemId'
+    | '/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
   fileRoutesByTo: FileRoutesByTo
@@ -149,6 +171,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/recommendations'
     | '/wardrobe'
+    | '/wardrobe/$itemId'
+    | '/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
   id:
@@ -163,6 +187,8 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/wardrobe'
+    | '/_authenticated/wardrobe/$itemId'
+    | '/_authenticated/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
   fileRoutesById: FileRoutesById
@@ -263,15 +289,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicEnvcheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/wardrobe/add': {
+      id: '/_authenticated/wardrobe/add'
+      path: '/add'
+      fullPath: '/wardrobe/add'
+      preLoaderRoute: typeof AuthenticatedWardrobeAddRouteImport
+      parentRoute: typeof AuthenticatedWardrobeRoute
+    }
+    '/_authenticated/wardrobe/$itemId': {
+      id: '/_authenticated/wardrobe/$itemId'
+      path: '/$itemId'
+      fullPath: '/wardrobe/$itemId'
+      preLoaderRoute: typeof AuthenticatedWardrobeItemIdRouteImport
+      parentRoute: typeof AuthenticatedWardrobeRoute
+    }
   }
 }
+
+interface AuthenticatedWardrobeRouteChildren {
+  AuthenticatedWardrobeItemIdRoute: typeof AuthenticatedWardrobeItemIdRoute
+  AuthenticatedWardrobeAddRoute: typeof AuthenticatedWardrobeAddRoute
+}
+
+const AuthenticatedWardrobeRouteChildren: AuthenticatedWardrobeRouteChildren = {
+  AuthenticatedWardrobeItemIdRoute: AuthenticatedWardrobeItemIdRoute,
+  AuthenticatedWardrobeAddRoute: AuthenticatedWardrobeAddRoute,
+}
+
+const AuthenticatedWardrobeRouteWithChildren =
+  AuthenticatedWardrobeRoute._addFileChildren(
+    AuthenticatedWardrobeRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedOutfitsRoute: typeof AuthenticatedOutfitsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
-  AuthenticatedWardrobeRoute: typeof AuthenticatedWardrobeRoute
+  AuthenticatedWardrobeRoute: typeof AuthenticatedWardrobeRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -279,7 +334,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOutfitsRoute: AuthenticatedOutfitsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
-  AuthenticatedWardrobeRoute: AuthenticatedWardrobeRoute,
+  AuthenticatedWardrobeRoute: AuthenticatedWardrobeRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -297,13 +352,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
