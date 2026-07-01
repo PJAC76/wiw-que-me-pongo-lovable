@@ -176,15 +176,21 @@ async def main():
             )
         except Exception:
             # Si la columna aún no existe en la BD, el processItemBackground
-            # fallará al hacer update. Detectamos ese caso para dar un
-            # mensaje claro.
-            body_text = await page.inner_text("body")
-            if "background_removed_storage_path" in body_text:
+            # fallará al hacer update. Detectamos ese caso vía el toast de
+            # error de sonner o los errores de consola.
+            toast_text = ""
+            try:
+                toast_text = await page.locator("[data-sonner-toaster]").inner_text(timeout=1000)
+            except Exception:
+                pass
+            joined = toast_text + "\n" + "\n".join(errors[-20:])
+            if "background_removed_storage_path" in joined:
                 bg_column_missing = True
                 print("SKIP: column background_removed_storage_path no aplicada — "
-                      "aplica migrations/phase3_background_removal.sql")
+                      "aplica migrations/phase3_background_removal.sql en tu Supabase")
             else:
                 await page.screenshot(path=str(SCREENS / "5_bg_error.png"))
+                print("toast:", toast_text)
                 print("last errors:", errors[-10:])
                 raise
         else:
