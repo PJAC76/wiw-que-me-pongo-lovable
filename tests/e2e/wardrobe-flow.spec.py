@@ -29,8 +29,12 @@ async def login(page):
     await page.get_by_label("Email").fill(EMAIL)
     await page.get_by_label("Contraseña").fill(PASSWORD)
     await page.get_by_role("button", name="Entrar").click()
-    # After sign-in the app redirects to /profile.
-    await page.wait_for_url("**/profile", timeout=15000)
+    # Wait until Supabase has a session persisted in localStorage.
+    await page.wait_for_function(
+        "() => Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'))",
+        timeout=15000,
+    )
+
 
 
 async def main():
