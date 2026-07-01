@@ -167,27 +167,69 @@ function AddItemPage() {
           mutation.mutate();
         }}
       >
-        <button
-          type="button"
-          onClick={() => fileInput.current?.click()}
-          className="relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-secondary/50 text-muted-foreground transition hover:bg-secondary"
-        >
-          {previewUrl ? (
-            <img src={previewUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Camera className="h-8 w-8" strokeWidth={1.25} />
-              <span className="text-sm">Toca para añadir foto</span>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => fileInput.current?.click()}
+            disabled={mutation.isPending}
+            aria-invalid={imageError ? true : undefined}
+            className={`relative flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-xl border border-dashed bg-secondary/50 text-muted-foreground transition hover:bg-secondary disabled:opacity-60 ${
+              imageError ? "border-destructive" : "border-border"
+            }`}
+          >
+            {previewUrl ? (
+              <>
+                <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+                {stage === "uploading" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 text-foreground">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span className="text-xs">Subiendo imagen…</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 px-4 text-center">
+                <Camera className="h-8 w-8" strokeWidth={1.25} />
+                <span className="text-sm">Toca para añadir foto</span>
+                <span className="text-[11px] text-muted-foreground/80">
+                  JPG, PNG, WEBP o HEIC · máx. 8 MB
+                </span>
+              </div>
+            )}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept={ACCEPT_ATTR}
+            className="hidden"
+            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          />
+          {imageError && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            >
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{imageError}</span>
             </div>
           )}
-        </button>
-        <input
-          ref={fileInput}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-        />
+          {file && !imageError && (
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="truncate">
+                {file.name} · {(file.size / (1024 * 1024)).toFixed(2)} MB
+              </span>
+              <button
+                type="button"
+                onClick={() => pickFile(null)}
+                disabled={mutation.isPending}
+                className="inline-flex items-center gap-1 text-foreground/70 underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                <X className="h-3 w-3" /> Quitar
+              </button>
+            </div>
+          )}
+        </div>
+
 
         <div className="space-y-2">
           <Label htmlFor="name">Nombre</Label>
