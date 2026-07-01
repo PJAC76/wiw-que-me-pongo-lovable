@@ -194,9 +194,14 @@ export async function removeStorageObject(path: string) {
   await supabase.storage.from("wardrobe-images").remove([path]);
 }
 
-export async function deleteClothingItem(id: string, storagePath: string | null) {
-  if (storagePath) {
-    await supabase.storage.from("wardrobe-images").remove([storagePath]);
+export async function deleteClothingItem(
+  id: string,
+  storagePath: string | null,
+  bgStoragePath: string | null = null,
+) {
+  const paths = [storagePath, bgStoragePath].filter((p): p is string => !!p);
+  if (paths.length) {
+    await supabase.storage.from("wardrobe-images").remove(paths);
   }
   const { error } = await supabase.from("clothing_items").delete().eq("id", id);
   if (error) throw error;
