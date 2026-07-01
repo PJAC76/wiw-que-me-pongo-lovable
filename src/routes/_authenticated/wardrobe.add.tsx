@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { AiDetectionStatus } from "@/components/ai-detection-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAiDetection } from "@/hooks/use-ai-detection";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
@@ -24,6 +26,9 @@ import {
   type ClothingCategory,
   type ClothingSeason,
 } from "@/lib/wardrobe";
+
+const KNOWN_CATEGORIES = Object.keys(CATEGORY_LABELS) as ClothingCategory[];
+const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
 
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
