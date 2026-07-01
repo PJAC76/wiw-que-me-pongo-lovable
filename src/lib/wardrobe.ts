@@ -63,6 +63,8 @@ export interface ClothingItem {
   notes: string | null;
   image_url: string | null;
   storage_path: string | null;
+  background_removed_image_url: string | null;
+  background_removed_storage_path: string | null;
   times_worn: number;
   last_worn_at: string | null;
   created_at: string;
