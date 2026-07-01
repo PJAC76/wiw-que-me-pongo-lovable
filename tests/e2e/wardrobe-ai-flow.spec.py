@@ -158,41 +158,40 @@ async def main():
             "should start as original (no bg version yet)"
         await page.screenshot(path=str(SCREENS / "4_detail_original.png"))
 
-        # 8) Mejorar fondo
-        bg_btn = page.get_by_role("button", name=re.compile("Mejorar fondo|Reprocesar"))
-        await expect(bg_btn).to_be_visible(timeout=5000)
-        await bg_btn.click()
-        # Overlay "Procesando fondo…" debe aparecer
+        # 8) Mejorar fondo — pre-check: si la columna aún no existe en la BD,
+        #    la mutación fallará al hacer update. Saltamos la sección con un
+        #    mensaje claro en vez de romper toda la suite.
+        col_check = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/clothing_items?select=background_removed_storage_path&limit=1",
+            headers={"apikey": APIKEY, "Authorization": f"Bearer {access_token}"},
+        )
         try:
-            await expect(page.get_by_text("Procesando fondo…")).to_be_visible(timeout=3000)
-        except Exception:
-            pass  # passthrough puede ser demasiado rápido
+            with urllib.request.urlopen(col_check, timeout=10) as r:
+                r.read()
+            has_bg_col = True
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "ignore")
+            has_bg_col = "background_removed_storage_path" not in body
+            if not has_bg_col:
+                bg_column_missing = True
+                print("SKIP: column background_removed_storage_path no aplicada — "
+                      "aplica migrations/phase3_background_removal.sql en tu Supabase")
 
-        # Esperar a que el toast de éxito aparezca o a que aparezca error visible
-        try:
+        if has_bg_col:
+            bg_btn = page.get_by_role("button", name=re.compile("Mejorar fondo|Reprocesar"))
+            await expect(bg_btn).to_be_visible(timeout=5000)
+            await bg_btn.click()
+            # Overlay "Procesando fondo…" debe aparecer (passthrough puede ser rápido)
+            try:
+                await expect(page.get_by_text("Procesando fondo…")).to_be_visible(timeout=3000)
+            except Exception:
+                pass
+
             await page.wait_for_function(
                 "() => !!document.querySelector('main img[data-view=\"clean\"]')",
                 timeout=25000,
             )
-        except Exception:
-            # Si la columna aún no existe en la BD, el processItemBackground
-            # fallará al hacer update. Detectamos ese caso vía el toast de
-            # error de sonner o los errores de consola.
-            toast_text = ""
-            try:
-                toast_text = await page.locator("[data-sonner-toaster]").inner_text(timeout=1000)
-            except Exception:
-                pass
-            joined = toast_text + "\n" + "\n".join(errors[-20:])
-            if "background_removed_storage_path" in joined:
-                bg_column_missing = True
-                print("SKIP: column background_removed_storage_path no aplicada — "
-                      "aplica migrations/phase3_background_removal.sql en tu Supabase")
-            else:
-                await page.screenshot(path=str(SCREENS / "5_bg_error.png"))
-                print("toast:", toast_text)
-                print("last errors:", errors[-10:])
-                raise
+
         else:
             # Verifica el <img> en modo clean
             clean_img = page.locator('main img[data-view="clean"]')
