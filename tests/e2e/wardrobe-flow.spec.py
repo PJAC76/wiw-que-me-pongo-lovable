@@ -96,8 +96,9 @@ async def main():
                 print(" •", e)
             raise
         await page.wait_for_load_state("networkidle")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_load_state("networkidle")
         await page.screenshot(path=str(SCREENS / "5_wardrobe_after_add.png"))
-
 
         after = await page.locator('a[href^="/wardrobe/"]:not([href="/wardrobe/add"])').count()
         print("items after add:", after)
@@ -176,6 +177,8 @@ async def main():
         # 7) Delete (dialog auto-accepted above)
         await page.get_by_label("Eliminar").click()
         await page.wait_for_url("**/wardrobe", timeout=15000)
+        await page.wait_for_load_state("networkidle")
+        await page.reload(wait_until="domcontentloaded")
         await page.wait_for_load_state("networkidle")
         await page.screenshot(path=str(SCREENS / "7_wardrobe_after_delete.png"))
         final = await page.locator('a[href^="/wardrobe/"]:not([href="/wardrobe/add"])').count()
