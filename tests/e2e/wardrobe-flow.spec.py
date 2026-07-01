@@ -106,11 +106,71 @@ async def main():
         # 6) Open the item detail (first card is newest by created_at desc)
         card = page.locator('a[href^="/wardrobe/"]:not([href="/wardrobe/add"])').first
         item_href = await card.get_attribute("href")
-        print("opening", item_href)
+        item_id = item_href.rsplit("/", 1)[-1]
+        print("opening", item_href, "id=", item_id)
         await card.click()
         await page.wait_for_url(f"**{item_href}")
         # Confirm the name we set is on the detail page
         await expect(page.get_by_role("heading", name=ITEM_NAME)).to_be_visible(timeout=5000)
+
+        # 6a) Fetch the row via REST to get storage_path + image_url (signed URL)
+        access_token = await page.evaluate(
+            "() => { const k = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token')); "
+            "return k ? JSON.parse(localStorage.getItem(k)).access_token : null; }"
+        )
+        assert access_token, "no access token in localStorage"
+        apikey = "sb_publishable_MGPlNp2vWCxd7ObFpi9dMg_LE9udqcQ"
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/clothing_items?id=eq.{item_id}&select=storage_path,image_url",
+            headers={"apikey": apikey, "Authorization": f"Bearer {access_token}"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as r:
+            rows = __import__("json").loads(r.read())
+        assert rows and rows[0]["storage_path"], f"missing storage_path in DB: {rows}"
+        storage_path = rows[0]["storage_path"]
+        signed_url = rows[0]["image_url"]
+        print("storage_path:", storage_path)
+        assert signed_url and "/object/sign/wardrobe-images/" in signed_url, \
+            f"image_url is not a signed URL: {signed_url}"
+
+        # 6b) HEAD the signed URL — must return 200 with an image content-type
+        head_req = urllib.request.Request(signed_url, method="GET")
+        with urllib.request.urlopen(head_req, timeout=10) as r:
+            assert r.status == 200, f"signed URL status {r.status}"
+            ctype = r.headers.get("Content-Type", "")
+            body_len = len(r.read())
+        assert ctype.startswith("image/"), f"unexpected content-type {ctype}"
+        assert body_len > 0, "signed URL body is empty"
+        print(f"signed URL OK: {ctype}, {body_len} bytes")
+
+        # 6c) Verify object exists via Storage API (list on the parent folder)
+        parent = storage_path.rsplit("/", 1)[0]
+        filename = storage_path.rsplit("/", 1)[-1]
+        list_req = urllib.request.Request(
+            f"{SUPABASE_URL}/storage/v1/object/list/wardrobe-images",
+            data=__import__("json").dumps({"prefix": parent, "limit": 100}).encode(),
+            headers={
+                "apikey": apikey,
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(list_req, timeout=10) as r:
+            listing = __import__("json").loads(r.read())
+        names = [o["name"] for o in listing]
+        assert filename in names, f"{filename} not found in Storage listing: {names}"
+        print("Storage object confirmed:", filename)
+
+        # 6d) Verify the detail page <img> actually loaded from the signed URL
+        img = page.locator("main img").first
+        await expect(img).to_be_visible(timeout=5000)
+        img_src = await img.get_attribute("src")
+        assert img_src == signed_url, f"img src mismatch:\n  page={img_src}\n  db  ={signed_url}"
+        natural = await img.evaluate("(el) => ({ w: el.naturalWidth, h: el.naturalHeight, complete: el.complete })")
+        assert natural["complete"] and natural["w"] > 0 and natural["h"] > 0, \
+            f"img did not render from signed URL: {natural}"
+        print("detail <img> rendered from signed URL:", natural)
         await page.screenshot(path=str(SCREENS / "6_item_detail.png"))
 
         # 7) Delete (dialog auto-accepted above)
