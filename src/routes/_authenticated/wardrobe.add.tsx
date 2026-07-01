@@ -29,6 +29,107 @@ const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "i
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
 
+type SubmitErrorKind = "validation" | "network" | "storage" | "database" | "unknown";
+
+interface SubmitError {
+  kind: SubmitErrorKind;
+  title: string;
+  message: string;
+  hint?: string;
+}
+
+class StageError extends Error {
+  constructor(public info: SubmitError, cause?: unknown) {
+    super(info.message);
+    this.name = "StageError";
+    if (cause) (this as { cause?: unknown }).cause = cause;
+  }
+}
+
+function isNetworkError(e: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  if (e instanceof TypeError && /fetch|network/i.test(e.message)) return true;
+  const msg = (e as { message?: string })?.message ?? "";
+  return /Failed to fetch|NetworkError|ERR_NETWORK|ENOTFOUND|timeout/i.test(msg);
+}
+
+function classifyStorage(e: unknown): SubmitError {
+  if (isNetworkError(e)) {
+    return {
+      kind: "network",
+      title: "Sin conexión al subir",
+      message: "No pudimos contactar con el servidor de imágenes.",
+      hint: "Revisa tu conexión y vuelve a intentarlo.",
+    };
+  }
+  const raw = (e as { message?: string })?.message ?? String(e);
+  const status = (e as { statusCode?: string | number })?.statusCode;
+  if (/Bucket not found/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Almacenamiento no disponible",
+      message: "El contenedor de imágenes no existe todavía.",
+      hint: "Contacta con el administrador para completar la configuración.",
+    };
+  }
+  if (String(status) === "413" || /Payload too large|exceeded/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Imagen demasiado grande",
+      message: "El servidor rechazó la imagen por tamaño.",
+      hint: "Prueba con una foto de menos de 8 MB.",
+    };
+  }
+  if (String(status) === "403" || /not authorized|permission|RLS/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Sin permisos para subir",
+      message: "Tu sesión no tiene permiso para guardar imágenes.",
+      hint: "Cierra sesión y vuelve a entrar.",
+    };
+  }
+  return {
+    kind: "storage",
+    title: "Error al subir la imagen",
+    message: raw || "Ocurrió un problema al guardar la foto.",
+    hint: "Inténtalo de nuevo en unos segundos.",
+  };
+}
+
+function classifyDatabase(e: unknown): SubmitError {
+  if (isNetworkError(e)) {
+    return {
+      kind: "network",
+      title: "Sin conexión al guardar",
+      message: "No pudimos contactar con la base de datos.",
+      hint: "Revisa tu conexión y vuelve a intentarlo.",
+    };
+  }
+  const raw = (e as { message?: string })?.message ?? String(e);
+  const code = (e as { code?: string })?.code;
+  if (code === "23505" || /duplicate key/i.test(raw)) {
+    return {
+      kind: "database",
+      title: "Prenda duplicada",
+      message: "Ya existe una prenda con esos datos.",
+    };
+  }
+  if (code === "42501" || /permission|RLS|policy/i.test(raw)) {
+    return {
+      kind: "database",
+      title: "Sin permisos para guardar",
+      message: "Tu sesión no tiene permiso para escribir esta prenda.",
+      hint: "Cierra sesión y vuelve a entrar.",
+    };
+  }
+  return {
+    kind: "database",
+    title: "Error al guardar la prenda",
+    message: raw || "La base de datos rechazó la operación.",
+    hint: "Revisa los campos e inténtalo de nuevo.",
+  };
+}
+
 function validateImage(file: File): string | null {
   if (!ACCEPTED_MIME.includes(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
     return "Formato no soportado. Usa JPG, PNG, WEBP o HEIC.";
