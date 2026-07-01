@@ -23,6 +23,7 @@ import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e
 import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
 import { Route as AuthenticatedWardrobeAddRouteImport } from './routes/_authenticated/wardrobe.add'
 import { Route as AuthenticatedWardrobeItemIdRouteImport } from './routes/_authenticated/wardrobe.$itemId'
+import { Route as AuthenticatedWardrobeItemIdEditRouteImport } from './routes/_authenticated/wardrobe.$itemId.edit'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -96,6 +97,12 @@ const AuthenticatedWardrobeItemIdRoute =
     path: '/$itemId',
     getParentRoute: () => AuthenticatedWardrobeRoute,
   } as any)
+const AuthenticatedWardrobeItemIdEditRoute =
+  AuthenticatedWardrobeItemIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedWardrobeItemIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -107,10 +114,11 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
-  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
+  '/wardrobe/$itemId/edit': typeof AuthenticatedWardrobeItemIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -122,10 +130,11 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
-  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
+  '/wardrobe/$itemId/edit': typeof AuthenticatedWardrobeItemIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -139,10 +148,11 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
-  '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRoute
+  '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/_authenticated/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
   '/api/public/seed-e2e': typeof ApiPublicSeedE2eRoute
+  '/_authenticated/wardrobe/$itemId/edit': typeof AuthenticatedWardrobeItemIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
+    | '/wardrobe/$itemId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
+    | '/wardrobe/$itemId/edit'
   id:
     | '__root__'
     | '/'
@@ -191,6 +203,7 @@ export interface FileRouteTypes {
     | '/_authenticated/wardrobe/add'
     | '/api/public/envcheck'
     | '/api/public/seed-e2e'
+    | '/_authenticated/wardrobe/$itemId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -303,16 +316,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWardrobeItemIdRouteImport
       parentRoute: typeof AuthenticatedWardrobeRoute
     }
+    '/_authenticated/wardrobe/$itemId/edit': {
+      id: '/_authenticated/wardrobe/$itemId/edit'
+      path: '/edit'
+      fullPath: '/wardrobe/$itemId/edit'
+      preLoaderRoute: typeof AuthenticatedWardrobeItemIdEditRouteImport
+      parentRoute: typeof AuthenticatedWardrobeItemIdRoute
+    }
   }
 }
 
+interface AuthenticatedWardrobeItemIdRouteChildren {
+  AuthenticatedWardrobeItemIdEditRoute: typeof AuthenticatedWardrobeItemIdEditRoute
+}
+
+const AuthenticatedWardrobeItemIdRouteChildren: AuthenticatedWardrobeItemIdRouteChildren =
+  {
+    AuthenticatedWardrobeItemIdEditRoute: AuthenticatedWardrobeItemIdEditRoute,
+  }
+
+const AuthenticatedWardrobeItemIdRouteWithChildren =
+  AuthenticatedWardrobeItemIdRoute._addFileChildren(
+    AuthenticatedWardrobeItemIdRouteChildren,
+  )
+
 interface AuthenticatedWardrobeRouteChildren {
-  AuthenticatedWardrobeItemIdRoute: typeof AuthenticatedWardrobeItemIdRoute
+  AuthenticatedWardrobeItemIdRoute: typeof AuthenticatedWardrobeItemIdRouteWithChildren
   AuthenticatedWardrobeAddRoute: typeof AuthenticatedWardrobeAddRoute
 }
 
 const AuthenticatedWardrobeRouteChildren: AuthenticatedWardrobeRouteChildren = {
-  AuthenticatedWardrobeItemIdRoute: AuthenticatedWardrobeItemIdRoute,
+  AuthenticatedWardrobeItemIdRoute:
+    AuthenticatedWardrobeItemIdRouteWithChildren,
   AuthenticatedWardrobeAddRoute: AuthenticatedWardrobeAddRoute,
 }
 
@@ -352,13 +387,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

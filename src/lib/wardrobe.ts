@@ -162,6 +162,36 @@ export async function createClothingItem(input: NewClothingItemInput): Promise<C
   return data as ClothingItem;
 }
 
+export interface UpdateClothingItemInput {
+  name?: string | null;
+  category?: ClothingCategory;
+  color?: string | null;
+  brand?: string | null;
+  size?: string | null;
+  seasons?: ClothingSeason[];
+  notes?: string | null;
+  image_url?: string | null;
+  storage_path?: string | null;
+}
+
+export async function updateClothingItem(
+  id: string,
+  patch: UpdateClothingItemInput,
+): Promise<ClothingItem> {
+  const { data, error } = await supabase
+    .from("clothing_items")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ClothingItem;
+}
+
+export async function removeStorageObject(path: string) {
+  await supabase.storage.from("wardrobe-images").remove([path]);
+}
+
 export async function deleteClothingItem(id: string, storagePath: string | null) {
   if (storagePath) {
     await supabase.storage.from("wardrobe-images").remove([storagePath]);

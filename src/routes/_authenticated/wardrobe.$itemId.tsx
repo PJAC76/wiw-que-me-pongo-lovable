@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Shirt, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Shirt, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,15 +48,25 @@ function ItemDetail() {
           <ArrowLeft className="h-4 w-4" />
         </Link>
         {item && (
-          <button
-            onClick={() => {
-              if (confirm("¿Eliminar esta prenda?")) del.mutate();
-            }}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-destructive"
-            aria-label="Eliminar"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/wardrobe/$itemId/edit"
+              params={{ itemId: item.id }}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card"
+              aria-label="Editar"
+            >
+              <Pencil className="h-4 w-4" />
+            </Link>
+            <button
+              onClick={() => {
+                if (confirm("¿Eliminar esta prenda?")) del.mutate();
+              }}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-destructive"
+              aria-label="Eliminar"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </header>
 
