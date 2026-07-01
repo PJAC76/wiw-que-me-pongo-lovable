@@ -178,6 +178,8 @@ async def main():
         await page.get_by_label("Eliminar").click()
         await page.wait_for_url("**/wardrobe", timeout=15000)
         await page.wait_for_load_state("networkidle")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_load_state("networkidle")
         await page.screenshot(path=str(SCREENS / "7_wardrobe_after_delete.png"))
         final = await page.locator('a[href^="/wardrobe/"]:not([href="/wardrobe/add"])').count()
         print("items after delete:", final)
