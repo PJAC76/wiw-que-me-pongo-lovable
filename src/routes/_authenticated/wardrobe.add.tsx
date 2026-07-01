@@ -407,6 +407,35 @@ function AddItemPage() {
           )}
         </div>
 
+        {file && !imageError && (
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={runDetection}
+              disabled={aiDetection.isRunning || mutation.isPending}
+            >
+              {aiDetection.isRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {aiDetection.isRunning ? "Analizando…" : "Detectar con IA"}
+            </Button>
+            <AiDetectionStatus
+              stage={aiDetection.stage}
+              progress={aiDetection.progress}
+              label={aiDetection.label}
+              error={aiDetection.error}
+              onRetry={runDetection}
+              onDismiss={aiDetection.reset}
+            />
+          </div>
+        )}
+
+
+
 
         <div className="space-y-2">
           <Label htmlFor="name">Nombre</Label>
