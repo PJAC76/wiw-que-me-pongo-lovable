@@ -175,6 +175,36 @@ function AddItemPage() {
   const [season, setSeason] = useState<ClothingSeason>("all");
   const [notes, setNotes] = useState("");
 
+  const aiDetection = useAiDetection();
+
+  function applyAiResult(res: {
+    category: string | null;
+    primary_color: string | null;
+    season: string | null;
+    brand_guess: string | null;
+  }) {
+    if (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)) {
+      setCategory(res.category as ClothingCategory);
+    }
+    if (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)) {
+      setSeason(res.season as ClothingSeason);
+    }
+    if (!color && res.primary_color) setColor(res.primary_color);
+    if (!brand && res.brand_guess) setBrand(res.brand_guess);
+  }
+
+  async function runDetection() {
+    if (!file) return;
+    const res = await aiDetection.detect(file);
+    if (res) {
+      applyAiResult(res);
+      toast.success("Detección aplicada", {
+        description: `Confianza ${(res.confidence * 100).toFixed(0)}% · ${res.model}`,
+      });
+    }
+  }
+
+
   const wardrobeQuery = useQuery({
     queryKey: ["default-wardrobe", user?.id],
     queryFn: () => getDefaultWardrobe(user!.id),
