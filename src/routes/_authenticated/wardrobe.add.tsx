@@ -290,6 +290,7 @@ function AddItemPage() {
 
   function pickFile(f: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    aiDetection.reset();
     if (!f) {
       setFile(null);
       setPreviewUrl(null);
@@ -310,6 +311,7 @@ function AddItemPage() {
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
   }
+
 
   const stageLabel =
     stage === "uploading"
