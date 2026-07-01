@@ -440,6 +440,37 @@ function AddItemPage() {
           />
         </div>
 
+        {submitError && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            data-error-kind={submitError.kind}
+            className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-3 text-sm text-destructive"
+          >
+            <ErrorIcon kind={submitError.kind} />
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium leading-tight">{submitError.title}</p>
+                <span className="rounded-full border border-destructive/30 px-1.5 py-0 text-[10px] uppercase tracking-wide text-destructive/80">
+                  {kindLabel(submitError.kind)}
+                </span>
+              </div>
+              <p className="text-xs leading-snug text-destructive/85">{submitError.message}</p>
+              {submitError.hint && (
+                <p className="text-xs leading-snug text-muted-foreground">{submitError.hint}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmitError(null)}
+              aria-label="Cerrar error"
+              className="text-destructive/70 hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <Button
           type="submit"
           className="w-full"
@@ -449,6 +480,13 @@ function AddItemPage() {
           {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {stageLabel}
         </Button>
+        {submitError && submitError.kind !== "validation" && (
+          <p className="text-center text-xs text-muted-foreground">
+            {submitError.kind === "network"
+              ? "Se reintentará cuando pulses “Guardar prenda” de nuevo."
+              : "Puedes reintentar sin perder los datos del formulario."}
+          </p>
+        )}
 
       </form>
     </div>
