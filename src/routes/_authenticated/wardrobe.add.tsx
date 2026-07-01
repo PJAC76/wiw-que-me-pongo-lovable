@@ -161,6 +161,7 @@ function AddItemPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
+  const [submitError, setSubmitError] = useState<SubmitError | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
   const [color, setColor] = useState("");
