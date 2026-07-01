@@ -25,15 +25,22 @@ ITEM_NAME = f"E2E Camiseta {int(time.time())}"
 
 
 async def login(page):
-    await page.goto(f"{BASE}/auth", wait_until="domcontentloaded")
+    await page.goto(f"{BASE}/auth", wait_until="networkidle")
+    # Ensure React has hydrated before clicking submit — otherwise the form
+    # falls through to a native GET and no session is created.
+    await page.wait_for_function(
+        "() => !!document.querySelector('form') && !document.querySelector('button[type=submit]')?.disabled",
+        timeout=10000,
+    )
     await page.get_by_label("Email").fill(EMAIL)
     await page.get_by_label("Contraseña").fill(PASSWORD)
+    await page.wait_for_timeout(300)
     await page.get_by_role("button", name="Entrar").click()
-    # Wait until Supabase has a session persisted in localStorage.
     await page.wait_for_function(
         "() => Object.keys(localStorage).some(k => k.startsWith('sb-') && k.endsWith('-auth-token'))",
         timeout=15000,
     )
+
 
 
 
