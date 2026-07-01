@@ -304,11 +304,12 @@ function AddItemPage() {
           type="submit"
           className="w-full"
           size="lg"
-          disabled={mutation.isPending || !user}
+          disabled={mutation.isPending || !user || !!imageError}
         >
           {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Guardar prenda
+          {stageLabel}
         </Button>
+
       </form>
     </div>
   );
