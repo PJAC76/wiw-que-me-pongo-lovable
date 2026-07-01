@@ -178,31 +178,59 @@ function AddItemPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error("No autenticado");
-      if (imageError) throw new Error(imageError);
-      const wardrobe = wardrobeQuery.data ?? (await getDefaultWardrobe(user.id));
+      if (!user) {
+        throw new StageError({
+          kind: "validation",
+          title: "Sesión expirada",
+          message: "Vuelve a iniciar sesión para añadir prendas.",
+        });
+      }
+      if (imageError) {
+        throw new StageError({
+          kind: "validation",
+          title: "Imagen no válida",
+          message: imageError,
+        });
+      }
+      let wardrobe;
+      try {
+        wardrobe = wardrobeQuery.data ?? (await getDefaultWardrobe(user.id));
+      } catch (err) {
+        throw new StageError(classifyDatabase(err), err);
+      }
       let image_url: string | null = null;
       let storage_path: string | null = null;
       if (file) {
         setStage("uploading");
-        const up = await uploadItemImage(user.id, wardrobe.id, file);
-        image_url = up.signedUrl;
-        storage_path = up.path;
+        try {
+          const up = await uploadItemImage(user.id, wardrobe.id, file);
+          image_url = up.signedUrl;
+          storage_path = up.path;
+        } catch (err) {
+          throw new StageError(classifyStorage(err), err);
+        }
       }
       setStage("saving");
-      return createClothingItem({
-        user_id: user.id,
-        wardrobe_id: wardrobe.id,
-        name: name.trim() || null,
-        category,
-        color: color.trim() || null,
-        brand: brand.trim() || null,
-        size: size.trim() || null,
-        seasons: [season],
-        notes: notes.trim() || null,
-        image_url,
-        storage_path,
-      });
+      try {
+        return await createClothingItem({
+          user_id: user.id,
+          wardrobe_id: wardrobe.id,
+          name: name.trim() || null,
+          category,
+          color: color.trim() || null,
+          brand: brand.trim() || null,
+          size: size.trim() || null,
+          seasons: [season],
+          notes: notes.trim() || null,
+          image_url,
+          storage_path,
+        });
+      } catch (err) {
+        throw new StageError(classifyDatabase(err), err);
+      }
+    },
+    onMutate: () => {
+      setSubmitError(null);
     },
     onSuccess: () => {
       toast.success("Prenda añadida");
@@ -211,7 +239,17 @@ function AddItemPage() {
     },
     onError: (e: Error) => {
       setStage("idle");
-      toast.error(e.message);
+      const info: SubmitError =
+        e instanceof StageError
+          ? e.info
+          : {
+              kind: "unknown",
+              title: "No se pudo guardar",
+              message: e.message || "Ocurrió un error inesperado.",
+              hint: "Inténtalo de nuevo.",
+            };
+      setSubmitError(info);
+      toast.error(info.title, { description: info.message });
     },
   });
 
