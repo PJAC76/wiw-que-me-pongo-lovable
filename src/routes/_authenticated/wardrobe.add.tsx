@@ -492,3 +492,26 @@ function AddItemPage() {
     </div>
   );
 }
+
+function kindLabel(k: SubmitErrorKind): string {
+  switch (k) {
+    case "validation":
+      return "Validación";
+    case "network":
+      return "Red";
+    case "storage":
+      return "Almacenamiento";
+    case "database":
+      return "Base de datos";
+    default:
+      return "Error";
+  }
+}
+
+function ErrorIcon({ kind }: { kind: SubmitErrorKind }) {
+  const cls = "mt-0.5 h-4 w-4 shrink-0";
+  if (kind === "network") return <CloudOff className={cls} />;
+  if (kind === "storage") return <HardDrive className={cls} />;
+  if (kind === "database") return <Database className={cls} />;
+  return <AlertCircle className={cls} />;
+}
