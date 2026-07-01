@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,12 +25,30 @@ import {
   type ClothingSeason,
 } from "@/lib/wardrobe";
 
+const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+function validateImage(file: File): string | null {
+  if (!ACCEPTED_MIME.includes(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
+    return "Formato no soportado. Usa JPG, PNG, WEBP o HEIC.";
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    return `La imagen pesa ${mb} MB. El máximo permitido es 8 MB.`;
+  }
+  if (file.size === 0) return "El archivo está vacío.";
+  return null;
+}
+
 export const Route = createFileRoute("/_authenticated/wardrobe/add")({
   head: () => ({
     meta: [{ title: "Añadir prenda — WIW" }],
   }),
   component: AddItemPage,
 });
+
+type Stage = "idle" | "uploading" | "saving";
 
 function AddItemPage() {
   const { user } = useAuth();
@@ -40,6 +58,8 @@ function AddItemPage() {
 
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>("idle");
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
   const [color, setColor] = useState("");
@@ -57,14 +77,17 @@ function AddItemPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("No autenticado");
+      if (imageError) throw new Error(imageError);
       const wardrobe = wardrobeQuery.data ?? (await getDefaultWardrobe(user.id));
       let image_url: string | null = null;
       let storage_path: string | null = null;
       if (file) {
+        setStage("uploading");
         const up = await uploadItemImage(user.id, wardrobe.id, file);
         image_url = up.signedUrl;
         storage_path = up.path;
       }
+      setStage("saving");
       return createClothingItem({
         user_id: user.id,
         wardrobe_id: wardrobe.id,
@@ -84,14 +107,42 @@ function AddItemPage() {
       qc.invalidateQueries({ queryKey: ["clothing_items", user?.id] });
       navigate({ to: "/wardrobe" });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setStage("idle");
+      toast.error(e.message);
+    },
   });
 
   function pickFile(f: File | null) {
-    setFile(f);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(f ? URL.createObjectURL(f) : null);
+    if (!f) {
+      setFile(null);
+      setPreviewUrl(null);
+      setImageError(null);
+      if (fileInput.current) fileInput.current.value = "";
+      return;
+    }
+    const err = validateImage(f);
+    if (err) {
+      setImageError(err);
+      setFile(null);
+      setPreviewUrl(null);
+      if (fileInput.current) fileInput.current.value = "";
+      toast.error(err);
+      return;
+    }
+    setImageError(null);
+    setFile(f);
+    setPreviewUrl(URL.createObjectURL(f));
   }
+
+  const stageLabel =
+    stage === "uploading"
+      ? "Subiendo imagen…"
+      : stage === "saving"
+        ? "Guardando prenda…"
+        : "Guardar prenda";
+
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
