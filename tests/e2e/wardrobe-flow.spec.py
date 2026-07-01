@@ -1,12 +1,13 @@
-"""E2E: login → armario → subir prenda con imagen → eliminar."""
+"""E2E: login → armario → subir prenda con imagen → verificar Storage + signed URL → eliminar."""
 import asyncio
-import io
 import os
 import time
+import urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
 BASE = "http://localhost:8080"
+SUPABASE_URL = "https://pcujmfhkyppmcahhgmmb.supabase.co"
 SCREENS = Path(__file__).parent / "screenshots" / "wardrobe-flow"
 SCREENS.mkdir(parents=True, exist_ok=True)
 
