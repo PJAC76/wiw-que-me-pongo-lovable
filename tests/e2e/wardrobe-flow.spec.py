@@ -83,10 +83,19 @@ async def main():
 
         # 5) Fill name and submit
         await page.get_by_label("Nombre").fill(ITEM_NAME)
-        await page.get_by_role("button", name="Guardar prenda").click()
-        await page.wait_for_url("**/wardrobe", timeout=15000)
+        await page.wait_for_timeout(200)
+        await page.get_by_role("button", name=lambda n: "Guardar" in n).click()
+        try:
+            await page.wait_for_url("**/wardrobe", timeout=20000)
+        except Exception:
+            await page.screenshot(path=str(SCREENS / "5_error_state.png"))
+            print("URL now:", page.url)
+            for e in errors[-20:]:
+                print(" •", e)
+            raise
         await page.wait_for_load_state("networkidle")
         await page.screenshot(path=str(SCREENS / "5_wardrobe_after_add.png"))
+
 
         after = await page.locator('a[href^="/wardrobe/"]:not([href="/wardrobe/add"])').count()
         print("items after add:", after)
