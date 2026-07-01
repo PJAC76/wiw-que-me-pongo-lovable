@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, Camera, Loader2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,107 @@ import {
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+type SubmitErrorKind = "validation" | "network" | "storage" | "database" | "unknown";
+
+interface SubmitError {
+  kind: SubmitErrorKind;
+  title: string;
+  message: string;
+  hint?: string;
+}
+
+class StageError extends Error {
+  constructor(public info: SubmitError, cause?: unknown) {
+    super(info.message);
+    this.name = "StageError";
+    if (cause) (this as { cause?: unknown }).cause = cause;
+  }
+}
+
+function isNetworkError(e: unknown): boolean {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  if (e instanceof TypeError && /fetch|network/i.test(e.message)) return true;
+  const msg = (e as { message?: string })?.message ?? "";
+  return /Failed to fetch|NetworkError|ERR_NETWORK|ENOTFOUND|timeout/i.test(msg);
+}
+
+function classifyStorage(e: unknown): SubmitError {
+  if (isNetworkError(e)) {
+    return {
+      kind: "network",
+      title: "Sin conexión al subir",
+      message: "No pudimos contactar con el servidor de imágenes.",
+      hint: "Revisa tu conexión y vuelve a intentarlo.",
+    };
+  }
+  const raw = (e as { message?: string })?.message ?? String(e);
+  const status = (e as { statusCode?: string | number })?.statusCode;
+  if (/Bucket not found/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Almacenamiento no disponible",
+      message: "El contenedor de imágenes no existe todavía.",
+      hint: "Contacta con el administrador para completar la configuración.",
+    };
+  }
+  if (String(status) === "413" || /Payload too large|exceeded/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Imagen demasiado grande",
+      message: "El servidor rechazó la imagen por tamaño.",
+      hint: "Prueba con una foto de menos de 8 MB.",
+    };
+  }
+  if (String(status) === "403" || /not authorized|permission|RLS/i.test(raw)) {
+    return {
+      kind: "storage",
+      title: "Sin permisos para subir",
+      message: "Tu sesión no tiene permiso para guardar imágenes.",
+      hint: "Cierra sesión y vuelve a entrar.",
+    };
+  }
+  return {
+    kind: "storage",
+    title: "Error al subir la imagen",
+    message: raw || "Ocurrió un problema al guardar la foto.",
+    hint: "Inténtalo de nuevo en unos segundos.",
+  };
+}
+
+function classifyDatabase(e: unknown): SubmitError {
+  if (isNetworkError(e)) {
+    return {
+      kind: "network",
+      title: "Sin conexión al guardar",
+      message: "No pudimos contactar con la base de datos.",
+      hint: "Revisa tu conexión y vuelve a intentarlo.",
+    };
+  }
+  const raw = (e as { message?: string })?.message ?? String(e);
+  const code = (e as { code?: string })?.code;
+  if (code === "23505" || /duplicate key/i.test(raw)) {
+    return {
+      kind: "database",
+      title: "Prenda duplicada",
+      message: "Ya existe una prenda con esos datos.",
+    };
+  }
+  if (code === "42501" || /permission|RLS|policy/i.test(raw)) {
+    return {
+      kind: "database",
+      title: "Sin permisos para guardar",
+      message: "Tu sesión no tiene permiso para escribir esta prenda.",
+      hint: "Cierra sesión y vuelve a entrar.",
+    };
+  }
+  return {
+    kind: "database",
+    title: "Error al guardar la prenda",
+    message: raw || "La base de datos rechazó la operación.",
+    hint: "Revisa los campos e inténtalo de nuevo.",
+  };
+}
 
 function validateImage(file: File): string | null {
   if (!ACCEPTED_MIME.includes(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
@@ -60,6 +161,7 @@ function AddItemPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [stage, setStage] = useState<Stage>("idle");
+  const [submitError, setSubmitError] = useState<SubmitError | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
   const [color, setColor] = useState("");
@@ -76,31 +178,59 @@ function AddItemPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error("No autenticado");
-      if (imageError) throw new Error(imageError);
-      const wardrobe = wardrobeQuery.data ?? (await getDefaultWardrobe(user.id));
+      if (!user) {
+        throw new StageError({
+          kind: "validation",
+          title: "Sesión expirada",
+          message: "Vuelve a iniciar sesión para añadir prendas.",
+        });
+      }
+      if (imageError) {
+        throw new StageError({
+          kind: "validation",
+          title: "Imagen no válida",
+          message: imageError,
+        });
+      }
+      let wardrobe;
+      try {
+        wardrobe = wardrobeQuery.data ?? (await getDefaultWardrobe(user.id));
+      } catch (err) {
+        throw new StageError(classifyDatabase(err), err);
+      }
       let image_url: string | null = null;
       let storage_path: string | null = null;
       if (file) {
         setStage("uploading");
-        const up = await uploadItemImage(user.id, wardrobe.id, file);
-        image_url = up.signedUrl;
-        storage_path = up.path;
+        try {
+          const up = await uploadItemImage(user.id, wardrobe.id, file);
+          image_url = up.signedUrl;
+          storage_path = up.path;
+        } catch (err) {
+          throw new StageError(classifyStorage(err), err);
+        }
       }
       setStage("saving");
-      return createClothingItem({
-        user_id: user.id,
-        wardrobe_id: wardrobe.id,
-        name: name.trim() || null,
-        category,
-        color: color.trim() || null,
-        brand: brand.trim() || null,
-        size: size.trim() || null,
-        seasons: [season],
-        notes: notes.trim() || null,
-        image_url,
-        storage_path,
-      });
+      try {
+        return await createClothingItem({
+          user_id: user.id,
+          wardrobe_id: wardrobe.id,
+          name: name.trim() || null,
+          category,
+          color: color.trim() || null,
+          brand: brand.trim() || null,
+          size: size.trim() || null,
+          seasons: [season],
+          notes: notes.trim() || null,
+          image_url,
+          storage_path,
+        });
+      } catch (err) {
+        throw new StageError(classifyDatabase(err), err);
+      }
+    },
+    onMutate: () => {
+      setSubmitError(null);
     },
     onSuccess: () => {
       toast.success("Prenda añadida");
@@ -109,7 +239,17 @@ function AddItemPage() {
     },
     onError: (e: Error) => {
       setStage("idle");
-      toast.error(e.message);
+      const info: SubmitError =
+        e instanceof StageError
+          ? e.info
+          : {
+              kind: "unknown",
+              title: "No se pudo guardar",
+              message: e.message || "Ocurrió un error inesperado.",
+              hint: "Inténtalo de nuevo.",
+            };
+      setSubmitError(info);
+      toast.error(info.title, { description: info.message });
     },
   });
 
@@ -300,6 +440,37 @@ function AddItemPage() {
           />
         </div>
 
+        {submitError && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            data-error-kind={submitError.kind}
+            className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-3 text-sm text-destructive"
+          >
+            <ErrorIcon kind={submitError.kind} />
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium leading-tight">{submitError.title}</p>
+                <span className="rounded-full border border-destructive/30 px-1.5 py-0 text-[10px] uppercase tracking-wide text-destructive/80">
+                  {kindLabel(submitError.kind)}
+                </span>
+              </div>
+              <p className="text-xs leading-snug text-destructive/85">{submitError.message}</p>
+              {submitError.hint && (
+                <p className="text-xs leading-snug text-muted-foreground">{submitError.hint}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSubmitError(null)}
+              aria-label="Cerrar error"
+              className="text-destructive/70 hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+
         <Button
           type="submit"
           className="w-full"
@@ -309,8 +480,38 @@ function AddItemPage() {
           {mutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           {stageLabel}
         </Button>
+        {submitError && submitError.kind !== "validation" && (
+          <p className="text-center text-xs text-muted-foreground">
+            {submitError.kind === "network"
+              ? "Se reintentará cuando pulses “Guardar prenda” de nuevo."
+              : "Puedes reintentar sin perder los datos del formulario."}
+          </p>
+        )}
 
       </form>
     </div>
   );
+}
+
+function kindLabel(k: SubmitErrorKind): string {
+  switch (k) {
+    case "validation":
+      return "Validación";
+    case "network":
+      return "Red";
+    case "storage":
+      return "Almacenamiento";
+    case "database":
+      return "Base de datos";
+    default:
+      return "Error";
+  }
+}
+
+function ErrorIcon({ kind }: { kind: SubmitErrorKind }) {
+  const cls = "mt-0.5 h-4 w-4 shrink-0";
+  if (kind === "network") return <CloudOff className={cls} />;
+  if (kind === "storage") return <HardDrive className={cls} />;
+  if (kind === "database") return <Database className={cls} />;
+  return <AlertCircle className={cls} />;
 }
