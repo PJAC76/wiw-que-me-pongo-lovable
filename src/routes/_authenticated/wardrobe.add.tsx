@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
+import { AiDetectionStatus } from "@/components/ai-detection-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAiDetection } from "@/hooks/use-ai-detection";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
@@ -24,6 +26,9 @@ import {
   type ClothingCategory,
   type ClothingSeason,
 } from "@/lib/wardrobe";
+
+const KNOWN_CATEGORIES = Object.keys(CATEGORY_LABELS) as ClothingCategory[];
+const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
 
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
@@ -170,6 +175,36 @@ function AddItemPage() {
   const [season, setSeason] = useState<ClothingSeason>("all");
   const [notes, setNotes] = useState("");
 
+  const aiDetection = useAiDetection();
+
+  function applyAiResult(res: {
+    category: string | null;
+    primary_color: string | null;
+    season: string | null;
+    brand_guess: string | null;
+  }) {
+    if (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)) {
+      setCategory(res.category as ClothingCategory);
+    }
+    if (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)) {
+      setSeason(res.season as ClothingSeason);
+    }
+    if (!color && res.primary_color) setColor(res.primary_color);
+    if (!brand && res.brand_guess) setBrand(res.brand_guess);
+  }
+
+  async function runDetection() {
+    if (!file) return;
+    const res = await aiDetection.detect(file);
+    if (res) {
+      applyAiResult(res);
+      toast.success("Detección aplicada", {
+        description: `Confianza ${(res.confidence * 100).toFixed(0)}% · ${res.model}`,
+      });
+    }
+  }
+
+
   const wardrobeQuery = useQuery({
     queryKey: ["default-wardrobe", user?.id],
     queryFn: () => getDefaultWardrobe(user!.id),
@@ -255,6 +290,7 @@ function AddItemPage() {
 
   function pickFile(f: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
+    aiDetection.reset();
     if (!f) {
       setFile(null);
       setPreviewUrl(null);
@@ -275,6 +311,7 @@ function AddItemPage() {
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
   }
+
 
   const stageLabel =
     stage === "uploading"
@@ -369,6 +406,35 @@ function AddItemPage() {
             </div>
           )}
         </div>
+
+        {file && !imageError && (
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={runDetection}
+              disabled={aiDetection.isRunning || mutation.isPending}
+            >
+              {aiDetection.isRunning ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {aiDetection.isRunning ? "Analizando…" : "Detectar con IA"}
+            </Button>
+            <AiDetectionStatus
+              stage={aiDetection.stage}
+              progress={aiDetection.progress}
+              label={aiDetection.label}
+              error={aiDetection.error}
+              onRetry={runDetection}
+              onDismiss={aiDetection.reset}
+            />
+          </div>
+        )}
+
+
 
 
         <div className="space-y-2">
