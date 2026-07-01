@@ -84,7 +84,8 @@ async def main():
         # 5) Fill name and submit
         await page.get_by_label("Nombre").fill(ITEM_NAME)
         await page.wait_for_timeout(200)
-        await page.get_by_role("button", name=lambda n: "Guardar" in n).click()
+        import re as _re
+        await page.get_by_role("button", name=_re.compile("Guardar")).click()
         try:
             await page.wait_for_url("**/wardrobe", timeout=20000)
         except Exception:
