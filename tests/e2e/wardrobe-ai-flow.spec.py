@@ -192,7 +192,6 @@ async def main():
                 timeout=25000,
             )
 
-        else:
             # Verifica el <img> en modo clean
             clean_img = page.locator('main img[data-view="clean"]')
             await expect(clean_img).to_be_visible()
