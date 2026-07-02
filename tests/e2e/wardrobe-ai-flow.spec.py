@@ -192,20 +192,33 @@ async def main():
                 timeout=25000,
             )
 
-            # Verifica el <img> en modo clean
+            # Verifica el <img> en modo clean cargado desde signed URL bajo /bg/
             clean_img = page.locator('main img[data-view="clean"]')
             await expect(clean_img).to_be_visible()
             src = await clean_img.get_attribute("src")
-            assert src and "/object/sign/wardrobe-images/" in src and "/bg/" in src, \
-                f"expected signed URL under bg/ subprefix, got {src}"
+            assert src, "clean img has no src"
+            assert "/object/sign/wardrobe-images/" in src, \
+                f"expected signed URL from wardrobe-images bucket, got {src}"
+            assert "/bg/" in src, f"expected /bg/ subprefix in signed URL, got {src}"
+            assert "token=" in src, f"expected signed URL token param, got {src}"
             natural = await clean_img.evaluate(
                 "(el) => ({ w: el.naturalWidth, h: el.naturalHeight, complete: el.complete })"
             )
             assert natural["complete"] and natural["w"] > 0, f"clean img did not load: {natural}"
+
+            # Fetch de la signed URL: debe devolver 200 sin auth (URL firmada)
+            try:
+                with urllib.request.urlopen(src, timeout=10) as r:
+                    assert r.status == 200, f"signed URL not 200: {r.status}"
+                    ctype = r.headers.get("content-type", "")
+                    assert ctype.startswith("image/"), f"unexpected content-type: {ctype}"
+                    print("signed URL fetch OK, content-type:", ctype)
+            except urllib.error.HTTPError as e:
+                raise AssertionError(f"signed URL fetch failed: {e.code} {e.reason}")
             print("bg-clean img rendered from signed URL, natural=", natural)
             await page.screenshot(path=str(SCREENS / "5_detail_clean.png"))
 
-            # Verifica en BD que se persistió el path
+            # Verifica en BD que se persistieron path + signed URL
             rows2 = rest_get(
                 f"/rest/v1/clothing_items?id=eq.{item_id}"
                 "&select=background_removed_storage_path,background_removed_image_url",
@@ -215,7 +228,14 @@ async def main():
             assert r0["background_removed_storage_path"], f"storage_path not persisted: {r0}"
             assert "/bg/" in r0["background_removed_storage_path"], \
                 f"bg path not under /bg/: {r0}"
+            assert r0["background_removed_image_url"], \
+                f"background_removed_image_url not persisted: {r0}"
+            db_url = r0["background_removed_image_url"]
+            assert "/object/sign/wardrobe-images/" in db_url and "/bg/" in db_url \
+                and "token=" in db_url, \
+                f"persisted image_url is not a signed /bg/ URL: {db_url}"
             print("DB persisted bg path:", r0["background_removed_storage_path"])
+            print("DB persisted bg signed URL OK")
 
             # Toggle Original / Sin fondo funciona
             await page.get_by_role("tab", name="Original").click()
