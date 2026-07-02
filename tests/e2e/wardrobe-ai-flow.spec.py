@@ -158,9 +158,9 @@ async def main():
             "should start as original (no bg version yet)"
         await page.screenshot(path=str(SCREENS / "4_detail_original.png"))
 
-        # 8) Mejorar fondo — pre-check: si la columna aún no existe en la BD,
-        #    la mutación fallará al hacer update. Saltamos la sección con un
-        #    mensaje claro en vez de romper toda la suite.
+        # 8) Mejorar fondo — pre-check estricto: la columna DEBE existir.
+        #    Si falta, fallamos con un mensaje accionable para detectar
+        #    regresiones de migraciones (phase3_background_removal.sql).
         col_check = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/clothing_items?select=background_removed_storage_path&limit=1",
             headers={"apikey": APIKEY, "Authorization": f"Bearer {access_token}"},
@@ -168,16 +168,16 @@ async def main():
         try:
             with urllib.request.urlopen(col_check, timeout=10) as r:
                 r.read()
-            has_bg_col = True
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "ignore")
-            has_bg_col = "background_removed_storage_path" not in body
-            if not has_bg_col:
-                bg_column_missing = True
-                print("SKIP: column background_removed_storage_path no aplicada — "
-                      "aplica migrations/phase3_background_removal.sql en tu Supabase")
+            raise AssertionError(
+                "MIGRATION MISSING: column public.clothing_items.background_removed_storage_path "
+                "no existe en Supabase. Aplica migrations/phase3_background_removal.sql "
+                f"antes de correr este E2E. Detalle PostgREST: {body}"
+            )
 
-        if has_bg_col:
+        if True:
+
             bg_btn = page.get_by_role("button", name=re.compile("Mejorar fondo|Reprocesar"))
             await expect(bg_btn).to_be_visible(timeout=5000)
             await bg_btn.click()
