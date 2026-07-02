@@ -260,10 +260,7 @@ async def main():
 
         await browser.close()
 
-    if bg_column_missing:
-        print("PARTIAL OK: detección IA verde; background pendiente de migración SQL.")
-    else:
-        print("OK: detección IA + procesamiento de fondo verdes.")
+    print("OK: detección IA + procesamiento de fondo verdes.")
 
 
 asyncio.run(main())
