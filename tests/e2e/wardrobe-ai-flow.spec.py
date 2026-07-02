@@ -67,7 +67,6 @@ def rest_get(path, token):
 
 
 async def main():
-    bg_column_missing = False
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
         ctx = await browser.new_context(viewport={"width": 390, "height": 844})
