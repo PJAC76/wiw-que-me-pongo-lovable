@@ -392,6 +392,52 @@ async def main():
             )
             print("path coherente entre storage_path, image_url y <img>: OK")
 
+            # --- Coherencia de token entre UI <img> y BD image_url ----------
+            # El signed URL persistido en BD y el que renderiza el <img> deben
+            # provenir de la MISMA firma: mismo `token` JWT (payload idéntico
+            # salvo, si acaso, el parámetro de expiración) y por tanto mismo
+            # TTL efectivo. Un token distinto indica doble firma (dos llamadas
+            # al signer) o desincronización UI/BD.
+            def _token_of(url: str) -> str:
+                qs = urllib.parse.urlparse(url).query
+                vals = urllib.parse.parse_qs(qs).get("token") or []
+                assert vals and vals[0], f"signed URL sin token: {url}"
+                return vals[0]
+
+            def _jwt_payload(tok: str) -> dict:
+                parts = tok.split(".")
+                assert len(parts) == 3, f"token no es JWT: {tok[:40]}…"
+                return json.loads(_b64url_decode(parts[1]))
+
+            ui_token = _token_of(src)
+            db_token = _token_of(db_url)
+            if ui_token != db_token:
+                # Fallback tolerante: aceptar solo si el payload es idéntico
+                # ignorando `exp` (parámetro de expiración). Cualquier otra
+                # diferencia (url, iat, role, etc.) se considera divergencia.
+                ui_payload = _jwt_payload(ui_token)
+                db_payload = _jwt_payload(db_token)
+                ui_no_exp = {k: v for k, v in ui_payload.items() if k != "exp"}
+                db_no_exp = {k: v for k, v in db_payload.items() if k != "exp"}
+                assert ui_no_exp == db_no_exp, (
+                    "Los tokens del signed URL divergen entre UI y BD más allá "
+                    "del parámetro de expiración.\n"
+                    f"  ui payload (sin exp): {ui_no_exp}\n"
+                    f"  db payload (sin exp): {db_no_exp}"
+                )
+                # Si difieren solo en exp, el TTL debe coincidir dentro de un
+                # margen razonable (1s de drift) para considerarse consistente.
+                assert abs(int(ui_payload["exp"]) - int(db_payload["exp"])) <= 1, (
+                    "Los tokens comparten payload pero difieren en TTL:\n"
+                    f"  ui exp={ui_payload['exp']} db exp={db_payload['exp']}"
+                )
+                print("tokens distintos pero payload equivalente y TTL coincide: OK")
+            else:
+                assert img_ttl == db_ttl, (
+                    f"Mismo token pero TTL calculado difiere: ui={img_ttl}s db={db_ttl}s"
+                )
+                print(f"token idéntico entre UI y BD, TTL={img_ttl}s: OK")
+
             # background_processed_at debe estar seteado y ser posterior al
             # inicio del click. Los tres campos de estado deben quedar
             # consistentes (todos poblados a la vez).
