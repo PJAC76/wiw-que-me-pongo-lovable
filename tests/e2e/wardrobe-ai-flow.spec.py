@@ -365,6 +365,33 @@ async def main():
             db_ttl = assert_signed_url_ttl(db_url, MIN_SIGNED_URL_TTL_S, label="DB image_url")
             print(f"DB signed URL TTL OK: {db_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
 
+            # Coherencia path ↔ signed URL: el segmento tras
+            # "/object/sign/wardrobe-images/" (sin querystring) debe ser
+            # exactamente igual a background_removed_storage_path.
+            def _extract_signed_object_path(url: str) -> str:
+                parsed = urllib.parse.urlparse(url)
+                marker = "/object/sign/wardrobe-images/"
+                idx = parsed.path.find(marker)
+                assert idx >= 0, f"signed URL sin prefijo esperado: {url}"
+                raw = parsed.path[idx + len(marker):]
+                return urllib.parse.unquote(raw)
+
+            db_url_path = _extract_signed_object_path(db_url)
+            ui_url_path = _extract_signed_object_path(src)
+            assert db_url_path == r0["background_removed_storage_path"], (
+                "background_removed_image_url no apunta al mismo path que "
+                "background_removed_storage_path (ignorando token).\n"
+                f"  storage_path      : {r0['background_removed_storage_path']}\n"
+                f"  image_url path    : {db_url_path}"
+            )
+            assert ui_url_path == r0["background_removed_storage_path"], (
+                "El <img data-view=clean> renderiza un signed URL cuyo path no "
+                "coincide con background_removed_storage_path.\n"
+                f"  storage_path      : {r0['background_removed_storage_path']}\n"
+                f"  ui img path       : {ui_url_path}"
+            )
+            print("path coherente entre storage_path, image_url y <img>: OK")
+
             # background_processed_at debe estar seteado y ser posterior al
             # inicio del click. Los tres campos de estado deben quedar
             # consistentes (todos poblados a la vez).
