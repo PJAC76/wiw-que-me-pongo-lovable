@@ -202,20 +202,102 @@ async def main():
         print("integridad BD tras fallo: los 3 campos siguen NULL (OK)")
 
         # --- Reintento tras retirar la intercepción: debe funcionar y poblar
-        # los tres campos atómicamente. Así confirmamos que un fallo previo
-        # no bloquea futuros intentos ni deja estado corrupto.
+        # los tres campos atómicamente. Además verificamos que:
+        #   - `background_processed_at` avanza estrictamente respecto al
+        #     instante del reintento (no reutiliza un timestamp viejo).
+        #   - La signed URL persistida en BD coincide en path con el
+        #     `background_removed_storage_path` recién generado.
+        #   - El `<img data-view="clean">` renderiza esa misma signed URL,
+        #     con token válido y bajo el prefijo /bg/.
+        from datetime import datetime, timezone, timedelta
+
         await page.unroute("**/_serverFn/**")
 
+        retry_started_at = datetime.now(timezone.utc) - timedelta(seconds=2)
         await bg_btn.click()
         await page.wait_for_function(
             "() => !!document.querySelector('main img[data-view=\"clean\"]')",
             timeout=25000,
         )
+
         post_ok = bg_state(item_id, access_token)
         assert post_ok["background_removed_storage_path"], f"reintento no persistió path: {post_ok}"
         assert post_ok["background_removed_image_url"], f"reintento no persistió image_url: {post_ok}"
         assert post_ok["background_processed_at"], f"reintento no marcó processed_at: {post_ok}"
-        print("reintento tras fallo OK: estado atómico completo")
+
+        # 1) processed_at avanza tras el reintento (no reutiliza el viejo).
+        processed_at = datetime.fromisoformat(
+            post_ok["background_processed_at"].replace("Z", "+00:00")
+        )
+        now_utc = datetime.now(timezone.utc) + timedelta(seconds=2)
+        assert retry_started_at <= processed_at <= now_utc, (
+            "background_processed_at fuera de la ventana del reintento — "
+            "podría estar reutilizando un timestamp de un intento anterior.\n"
+            f"  retry_started_at={retry_started_at.isoformat()}\n"
+            f"  processed_at    ={processed_at.isoformat()}\n"
+            f"  now_utc         ={now_utc.isoformat()}"
+        )
+
+        # 2) La signed URL de BD apunta EXACTAMENTE al path recién generado
+        #    (mismo objeto en Storage, ignorando solo el querystring/token).
+        db_url = post_ok["background_removed_image_url"]
+        storage_path = post_ok["background_removed_storage_path"]
+        assert "/object/sign/wardrobe-images/" in db_url and "/bg/" in db_url \
+            and "token=" in db_url, \
+            f"image_url tras reintento no es signed /bg/: {db_url}"
+
+        marker = "/object/sign/wardrobe-images/"
+        parsed = urllib.parse.urlparse(db_url)
+        idx = parsed.path.find(marker)
+        assert idx >= 0, f"signed URL sin prefijo esperado: {db_url}"
+        db_url_path = urllib.parse.unquote(parsed.path[idx + len(marker):])
+        assert db_url_path == storage_path, (
+            "Tras reintento, la signed URL no apunta al mismo objeto que "
+            "background_removed_storage_path.\n"
+            f"  storage_path  : {storage_path}\n"
+            f"  image_url path: {db_url_path}"
+        )
+
+        # 3) Token JWT presente y payload apuntando al mismo path firmado.
+        qs = urllib.parse.parse_qs(parsed.query)
+        token_vals = qs.get("token") or []
+        assert token_vals and token_vals[0], f"signed URL sin token: {db_url}"
+        token = token_vals[0]
+        parts = token.split(".")
+        assert len(parts) == 3, f"token no es JWT válido: {token[:40]}…"
+        pad = "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(parts[1] + pad))
+        signed_url_claim = payload.get("url") or ""
+        # Supabase firma la ruta como "<bucket>/<path>" en el claim `url`.
+        expected_claim = f"wardrobe-images/{storage_path}"
+        assert signed_url_claim == expected_claim, (
+            "El claim `url` del JWT firmado no coincide con el path "
+            "background_removed_storage_path tras el reintento.\n"
+            f"  claim url  : {signed_url_claim}\n"
+            f"  expected   : {expected_claim}"
+        )
+
+        # 4) El <img data-view="clean"> renderiza esa misma signed URL.
+        clean_img = page.locator('main img[data-view="clean"]')
+        ui_src = await clean_img.get_attribute("src")
+        assert ui_src, "clean img sin src tras reintento"
+        ui_parsed = urllib.parse.urlparse(ui_src)
+        ui_idx = ui_parsed.path.find(marker)
+        assert ui_idx >= 0, f"UI src sin prefijo firmado: {ui_src}"
+        ui_path = urllib.parse.unquote(ui_parsed.path[ui_idx + len(marker):])
+        assert ui_path == storage_path, (
+            "Tras reintento, el <img> no apunta al nuevo storage_path.\n"
+            f"  storage_path: {storage_path}\n"
+            f"  ui img path : {ui_path}"
+        )
+        ui_natural = await clean_img.evaluate(
+            "(el) => ({ w: el.naturalWidth, complete: el.complete })"
+        )
+        assert ui_natural["complete"] and ui_natural["w"] > 0, (
+            f"clean img no cargó tras reintento: {ui_natural}"
+        )
+
+        print("reintento tras fallo OK: processed_at avanzado y signed URL coherente con nuevo path")
 
         # Limpieza
         await page.goto(f"{BASE}/wardrobe/{item_id}", wait_until="networkidle")
