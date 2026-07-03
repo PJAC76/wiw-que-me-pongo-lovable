@@ -245,6 +245,8 @@ async def main():
                 f"expected signed URL from wardrobe-images bucket, got {src}"
             assert "/bg/" in src, f"expected /bg/ subprefix in signed URL, got {src}"
             assert "token=" in src, f"expected signed URL token param, got {src}"
+            img_ttl = assert_signed_url_ttl(src, MIN_SIGNED_URL_TTL_S, label="clean img src")
+            print(f"clean img signed URL TTL OK: {img_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
             natural = await clean_img.evaluate(
                 "(el) => ({ w: el.naturalWidth, h: el.naturalHeight, complete: el.complete })"
             )
