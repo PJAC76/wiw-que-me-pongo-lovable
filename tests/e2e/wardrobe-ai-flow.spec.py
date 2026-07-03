@@ -280,6 +280,8 @@ async def main():
             assert "/object/sign/wardrobe-images/" in db_url and "/bg/" in db_url \
                 and "token=" in db_url, \
                 f"persisted image_url is not a signed /bg/ URL: {db_url}"
+            db_ttl = assert_signed_url_ttl(db_url, MIN_SIGNED_URL_TTL_S, label="DB image_url")
+            print(f"DB signed URL TTL OK: {db_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
             print("DB persisted bg path:", r0["background_removed_storage_path"])
             print("DB persisted bg signed URL OK")
 
