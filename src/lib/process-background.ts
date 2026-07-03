@@ -92,14 +92,17 @@ export async function processItemBackground(
   }
 
   // 4. Actualizar la fila.
+  const processedAt = new Date().toISOString();
   const { error: updErr } = await supabase
     .from("clothing_items")
     .update({
       background_removed_storage_path: path,
       background_removed_image_url: signed.signedUrl,
+      background_processed_at: processedAt,
     })
     .eq("id", item.id);
   if (updErr) throw new Error(updErr.message);
+
 
   return {
     storage_path: path,

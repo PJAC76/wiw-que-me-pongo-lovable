@@ -202,11 +202,13 @@ async def main():
             "should start as original (no bg version yet)"
         await page.screenshot(path=str(SCREENS / "4_detail_original.png"))
 
-        # 8) Mejorar fondo — pre-check estricto: la columna DEBE existir.
-        #    Si falta, fallamos con un mensaje accionable para detectar
-        #    regresiones de migraciones (phase3_background_removal.sql).
+        # 8) Mejorar fondo — pre-check estricto: las columnas DEBEN existir.
+        #    Si faltan, fallamos con un mensaje accionable para detectar
+        #    regresiones de migraciones (phase3_background_removal.sql y
+        #    phase3_background_processed_at.sql).
         col_check = urllib.request.Request(
-            f"{SUPABASE_URL}/rest/v1/clothing_items?select=background_removed_storage_path&limit=1",
+            f"{SUPABASE_URL}/rest/v1/clothing_items"
+            "?select=background_removed_storage_path,background_processed_at&limit=1",
             headers={"apikey": APIKEY, "Authorization": f"Bearer {access_token}"},
         )
         try:
@@ -215,10 +217,29 @@ async def main():
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "ignore")
             raise AssertionError(
-                "MIGRATION MISSING: column public.clothing_items.background_removed_storage_path "
-                "no existe en Supabase. Aplica migrations/phase3_background_removal.sql "
-                f"antes de correr este E2E. Detalle PostgREST: {body}"
+                "MIGRATION MISSING: faltan columnas de fondo en public.clothing_items "
+                "(background_removed_storage_path / background_processed_at). Aplica "
+                "migrations/phase3_background_removal.sql y "
+                "migrations/phase3_background_processed_at.sql antes de correr este E2E. "
+                f"Detalle PostgREST: {body}"
             )
+
+        # Snapshot previo: la fila recién creada no debe tener estado de fondo.
+        pre_rows = rest_get(
+            f"/rest/v1/clothing_items?id=eq.{item_id}"
+            "&select=background_removed_storage_path,background_removed_image_url,background_processed_at",
+            access_token,
+        )
+        pre = pre_rows[0]
+        assert pre["background_removed_storage_path"] is None, f"pre storage_path no es null: {pre}"
+        assert pre["background_removed_image_url"] is None, f"pre image_url no es null: {pre}"
+        assert pre["background_processed_at"] is None, f"pre processed_at no es null: {pre}"
+
+        # Marca temporal para acotar el timestamp posterior (con 2s de margen
+        # por drift de reloj cliente/servidor).
+        from datetime import datetime, timezone, timedelta
+        click_started_at = datetime.now(timezone.utc) - timedelta(seconds=2)
+
 
         if True:
 
@@ -325,10 +346,10 @@ async def main():
             )
             print("server fn POSTs durante procesado: 1 (OK)")
 
-            # Verifica en BD que se persistieron path + signed URL
+            # Verifica en BD que se persistieron path + signed URL + timestamp
             rows2 = rest_get(
                 f"/rest/v1/clothing_items?id=eq.{item_id}"
-                "&select=background_removed_storage_path,background_removed_image_url",
+                "&select=background_removed_storage_path,background_removed_image_url,background_processed_at",
                 access_token,
             )
             r0 = rows2[0]
@@ -343,6 +364,28 @@ async def main():
                 f"persisted image_url is not a signed /bg/ URL: {db_url}"
             db_ttl = assert_signed_url_ttl(db_url, MIN_SIGNED_URL_TTL_S, label="DB image_url")
             print(f"DB signed URL TTL OK: {db_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
+
+            # background_processed_at debe estar seteado y ser posterior al
+            # inicio del click. Los tres campos de estado deben quedar
+            # consistentes (todos poblados a la vez).
+            processed_at_raw = r0["background_processed_at"]
+            assert processed_at_raw, (
+                f"background_processed_at no se persistió tras el procesamiento: {r0}"
+            )
+            # PostgREST devuelve ISO con offset; normaliza 'Z' → '+00:00'.
+            processed_at = datetime.fromisoformat(
+                processed_at_raw.replace("Z", "+00:00")
+            )
+            now_utc = datetime.now(timezone.utc) + timedelta(seconds=2)
+            assert click_started_at <= processed_at <= now_utc, (
+                f"background_processed_at fuera de ventana esperada.\n"
+                f"  click_started_at={click_started_at.isoformat()}\n"
+                f"  processed_at    ={processed_at.isoformat()}\n"
+                f"  now_utc         ={now_utc.isoformat()}"
+            )
+            print(f"background_processed_at OK: {processed_at.isoformat()}")
+            first_processed_at = processed_at
+
             print("DB persisted bg path:", r0["background_removed_storage_path"])
             print("DB persisted bg signed URL OK")
 
