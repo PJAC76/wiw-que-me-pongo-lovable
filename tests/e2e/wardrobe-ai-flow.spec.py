@@ -14,13 +14,58 @@ devuelve un resultado simulado y el de fondo hace passthrough del
 original. Perfecto para E2E sin depender del proveedor real.
 """
 import asyncio
+import base64
 import json
 import os
 import re
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
+
+# TTL mínimo aceptable para las signed URLs de /bg/. El cliente firma con
+# 1 año (60*60*24*365 = 31_536_000); exigimos ≥180 días para detectar
+# regresiones que acorten la expiración y provoquen roturas prematuras
+# de imágenes cacheadas en BD.
+MIN_SIGNED_URL_TTL_S = 60 * 60 * 24 * 180
+
+
+def _b64url_decode(s: str) -> bytes:
+    pad = "=" * (-len(s) % 4)
+    return base64.urlsafe_b64decode(s + pad)
+
+
+def assert_signed_url_ttl(url: str, min_ttl_s: int, *, label: str) -> int:
+    """Extrae el token JWT del signed URL de Supabase Storage y valida TTL.
+
+    Devuelve el TTL efectivo (exp - iat) en segundos.
+    """
+    qs = urllib.parse.urlparse(url).query
+    params = urllib.parse.parse_qs(qs)
+    token_vals = params.get("token") or []
+    assert token_vals and token_vals[0], f"[{label}] signed URL sin token: {url}"
+    token = token_vals[0]
+    parts = token.split(".")
+    assert len(parts) == 3, f"[{label}] token no es un JWT (segments={len(parts)}): {token[:40]}…"
+    try:
+        payload = json.loads(_b64url_decode(parts[1]))
+    except Exception as e:
+        raise AssertionError(f"[{label}] no se pudo decodificar payload JWT: {e}")
+    exp = payload.get("exp")
+    iat = payload.get("iat")
+    assert isinstance(exp, (int, float)), f"[{label}] JWT sin exp numérico: {payload}"
+    now = int(time.time())
+    remaining = int(exp) - now
+    assert remaining >= min_ttl_s, (
+        f"[{label}] signed URL expira en {remaining}s (< mínimo {min_ttl_s}s). "
+        f"Revisa el SIGNED_TTL_S del cliente y no acortes la expiración de /bg/."
+    )
+    ttl = int(exp) - int(iat) if isinstance(iat, (int, float)) else remaining
+    assert ttl >= min_ttl_s, (
+        f"[{label}] TTL firmado {ttl}s (< mínimo {min_ttl_s}s). payload={payload}"
+    )
+    return ttl
 
 BASE = "http://localhost:8080"
 SUPABASE_URL = "https://pcujmfhkyppmcahhgmmb.supabase.co"
@@ -200,6 +245,8 @@ async def main():
                 f"expected signed URL from wardrobe-images bucket, got {src}"
             assert "/bg/" in src, f"expected /bg/ subprefix in signed URL, got {src}"
             assert "token=" in src, f"expected signed URL token param, got {src}"
+            img_ttl = assert_signed_url_ttl(src, MIN_SIGNED_URL_TTL_S, label="clean img src")
+            print(f"clean img signed URL TTL OK: {img_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
             natural = await clean_img.evaluate(
                 "(el) => ({ w: el.naturalWidth, h: el.naturalHeight, complete: el.complete })"
             )
@@ -233,6 +280,8 @@ async def main():
             assert "/object/sign/wardrobe-images/" in db_url and "/bg/" in db_url \
                 and "token=" in db_url, \
                 f"persisted image_url is not a signed /bg/ URL: {db_url}"
+            db_ttl = assert_signed_url_ttl(db_url, MIN_SIGNED_URL_TTL_S, label="DB image_url")
+            print(f"DB signed URL TTL OK: {db_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
             print("DB persisted bg path:", r0["background_removed_storage_path"])
             print("DB persisted bg signed URL OK")
 
