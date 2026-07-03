@@ -224,6 +224,42 @@ async def main():
 
             bg_btn = page.get_by_role("button", name=re.compile("Mejorar fondo|Reprocesar"))
             await expect(bg_btn).to_be_visible(timeout=5000)
+
+            # --- Instrumentación: contamos llamadas a server functions durante
+            # el procesamiento y mutaciones de src en el <img data-view="clean">.
+            server_fn_calls: list[str] = []
+
+            def _on_request(req):
+                url = req.url
+                if req.method == "POST" and "/_serverFn/" in url:
+                    server_fn_calls.append(url)
+
+            page.on("request", _on_request)
+
+            # Observer que cuenta cuántas veces se asigna/actualiza el src del
+            # <img data-view="clean"> (creación + cambios posteriores).
+            await page.evaluate(
+                """
+                () => {
+                  window.__cleanSrcSets = [];
+                  const record = (el) => {
+                    const src = el.getAttribute('src') || '';
+                    const last = window.__cleanSrcSets[window.__cleanSrcSets.length - 1];
+                    if (src && src !== last) window.__cleanSrcSets.push(src);
+                  };
+                  const scan = () => {
+                    document.querySelectorAll('main img[data-view="clean"]').forEach(record);
+                  };
+                  window.__cleanObs = new MutationObserver(() => scan());
+                  window.__cleanObs.observe(document.body, {
+                    subtree: true, childList: true, attributes: true,
+                    attributeFilter: ['src', 'data-view'],
+                  });
+                  scan();
+                }
+                """
+            )
+
             await bg_btn.click()
             # Overlay "Procesando fondo…" debe aparecer (passthrough puede ser rápido)
             try:
@@ -263,6 +299,31 @@ async def main():
                 raise AssertionError(f"signed URL fetch failed: {e.code} {e.reason}")
             print("bg-clean img rendered from signed URL, natural=", natural)
             await page.screenshot(path=str(SCREENS / "5_detail_clean.png"))
+
+            # --- Aserciones de idempotencia UI/red -----------------------------
+            # Margen para detectar re-renders o llamadas duplicadas (StrictMode,
+            # refetch reactivo, etc.) tras el éxito.
+            await page.wait_for_timeout(1500)
+            src_after = await clean_img.get_attribute("src")
+            assert src_after == src, (
+                "clean img src cambió tras el éxito (esperado 1 sola actualización).\n"
+                f"  antes: {src}\n  después: {src_after}"
+            )
+            src_sets = await page.evaluate("() => window.__cleanSrcSets || []")
+            assert len(src_sets) == 1, (
+                f"clean img src se asignó {len(src_sets)} veces (esperado 1). "
+                f"Historial: {src_sets}"
+            )
+            print("clean img src set exactamente 1 vez: OK")
+
+            page.remove_listener("request", _on_request)
+            # Solo una llamada a la server function de procesamiento debe
+            # haberse disparado por el click en "Mejorar fondo".
+            assert len(server_fn_calls) == 1, (
+                f"esperado 1 POST a /_serverFn/ tras click en 'Mejorar fondo', "
+                f"observados {len(server_fn_calls)}: {server_fn_calls}"
+            )
+            print("server fn POSTs durante procesado: 1 (OK)")
 
             # Verifica en BD que se persistieron path + signed URL
             rows2 = rest_get(
