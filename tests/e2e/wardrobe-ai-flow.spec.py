@@ -346,10 +346,10 @@ async def main():
             )
             print("server fn POSTs durante procesado: 1 (OK)")
 
-            # Verifica en BD que se persistieron path + signed URL
+            # Verifica en BD que se persistieron path + signed URL + timestamp
             rows2 = rest_get(
                 f"/rest/v1/clothing_items?id=eq.{item_id}"
-                "&select=background_removed_storage_path,background_removed_image_url",
+                "&select=background_removed_storage_path,background_removed_image_url,background_processed_at",
                 access_token,
             )
             r0 = rows2[0]
@@ -364,6 +364,28 @@ async def main():
                 f"persisted image_url is not a signed /bg/ URL: {db_url}"
             db_ttl = assert_signed_url_ttl(db_url, MIN_SIGNED_URL_TTL_S, label="DB image_url")
             print(f"DB signed URL TTL OK: {db_ttl}s (min {MIN_SIGNED_URL_TTL_S}s)")
+
+            # background_processed_at debe estar seteado y ser posterior al
+            # inicio del click. Los tres campos de estado deben quedar
+            # consistentes (todos poblados a la vez).
+            processed_at_raw = r0["background_processed_at"]
+            assert processed_at_raw, (
+                f"background_processed_at no se persistió tras el procesamiento: {r0}"
+            )
+            # PostgREST devuelve ISO con offset; normaliza 'Z' → '+00:00'.
+            processed_at = datetime.fromisoformat(
+                processed_at_raw.replace("Z", "+00:00")
+            )
+            now_utc = datetime.now(timezone.utc) + timedelta(seconds=2)
+            assert click_started_at <= processed_at <= now_utc, (
+                f"background_processed_at fuera de ventana esperada.\n"
+                f"  click_started_at={click_started_at.isoformat()}\n"
+                f"  processed_at    ={processed_at.isoformat()}\n"
+                f"  now_utc         ={now_utc.isoformat()}"
+            )
+            print(f"background_processed_at OK: {processed_at.isoformat()}")
+            first_processed_at = processed_at
+
             print("DB persisted bg path:", r0["background_removed_storage_path"])
             print("DB persisted bg signed URL OK")
 
