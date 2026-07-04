@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Sparkles, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { OCCASIONS, normalizeOccasions } from "@/lib/outfit-logs";
