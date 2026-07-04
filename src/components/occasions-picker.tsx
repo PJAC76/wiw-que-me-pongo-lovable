@@ -205,7 +205,7 @@ export function OccasionsPicker({
             </p>
           ) : (
             filteredAll.map((o) => {
-              const active = value.includes(o);
+              const active = normalizedValue.includes(o);
               return (
                 <Chip
                   key={o}
