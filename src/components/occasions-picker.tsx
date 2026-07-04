@@ -198,7 +198,7 @@ export function OccasionsPicker({
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleInputKeyDown}
           placeholder="Buscar ocasión…"
           className="pl-8 pr-8"
         />
