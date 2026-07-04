@@ -72,7 +72,6 @@ function OutfitsHistoryScreen() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
-  const [occasionQuery, setOccasionQuery] = useState("");
 
   const filters = useMemo(
     () => ({
