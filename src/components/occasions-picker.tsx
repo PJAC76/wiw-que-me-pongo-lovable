@@ -269,20 +269,36 @@ export function OccasionsPicker({
             {q ? `${filteredAll.length} resultado${filteredAll.length === 1 ? "" : "s"}` : "Todas"}
           </span>
         </div>
-        <div className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto pr-1">
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-label="Ocasiones disponibles"
+          aria-multiselectable="true"
+          className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto pr-1"
+        >
           {filteredAll.length === 0 ? (
             <p className="w-full py-3 text-center text-xs text-muted-foreground">
               Sin coincidencias.
             </p>
           ) : (
-            filteredAll.map((o) => {
+            filteredAll.map((o, idx) => {
               const active = normalizedValue.includes(o);
               return (
                 <Chip
                   key={o}
+                  ref={(el) => {
+                    chipRefs.current[idx] = el;
+                  }}
                   label={o}
                   active={active}
-                  onClick={() => toggle(o)}
+                  role="option"
+                  ariaSelected={active}
+                  tabIndex={idx === activeIndex ? 0 : -1}
+                  onClick={() => {
+                    setActiveIndex(idx);
+                    toggle(o);
+                  }}
+                  onKeyDown={(e) => handleChipKeyDown(e, idx)}
                 />
               );
             })
