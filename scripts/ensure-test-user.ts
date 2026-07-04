@@ -17,6 +17,37 @@
  */
 import { createClient } from "@supabase/supabase-js";
 
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+}
+
+function createSupabaseFetch(supabaseKey: string): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request
+        ? input.headers
+        : undefined,
+    );
+
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+
+    // Las claves nuevas de Supabase (`sb_secret_*`) son opacas, no JWT.
+    // supabase-js añade `Authorization: Bearer <key>` por defecto, pero Auth
+    // Admin debe recibir la clave nueva como `apikey` para evitar "Invalid API key".
+    if (
+      isNewSupabaseApiKey(supabaseKey) &&
+      headers.get("Authorization") === `Bearer ${supabaseKey}`
+    ) {
+      headers.delete("Authorization");
+    }
+
+    headers.set("apikey", supabaseKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
 function req(name: string, fallback?: string): string {
   const v = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
   if (!v) {
@@ -32,7 +63,25 @@ async function main() {
   const email = req("TEST_EMAIL");
   const password = req("TEST_PASSWORD");
 
+  if (serviceKey.startsWith("sb_publishable_")) {
+    console.error(
+      "::error::SUPABASE_SERVICE_ROLE_KEY contiene una publishable/anon key. Debe ser la clave privada service_role o secret key del mismo proyecto.",
+    );
+    process.exit(1);
+  }
+
+  let projectHost: string;
+  try {
+    projectHost = new URL(url).host;
+  } catch {
+    console.error("::error::SUPABASE_URL no es una URL válida.");
+    process.exit(1);
+  }
+
+  console.log(`Verificando usuario E2E contra ${projectHost}`);
+
   const admin = createClient(url, serviceKey, {
+    global: { fetch: createSupabaseFetch(serviceKey) },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
@@ -42,7 +91,10 @@ async function main() {
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) {
-      console.error("::error::listUsers falló:", error.message);
+      const keyHint = serviceKey.startsWith("sb_secret_")
+        ? "Se ha detectado una secret key nueva (sb_secret_*). Si sigue fallando, crea o copia la service_role legacy JWT (empieza por eyJ...) del mismo proyecto."
+        : "Comprueba que SUPABASE_SERVICE_ROLE_KEY sea la service_role key del mismo proyecto que SUPABASE_URL.";
+      console.error(`::error::listUsers falló: ${error.message}. ${keyHint}`);
       process.exit(1);
     }
     const match = data.users.find(
