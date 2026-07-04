@@ -88,6 +88,26 @@ export async function logOutfit(input: LogOutfitInput): Promise<OutfitLog> {
   return data as OutfitLog;
 }
 
+export interface UpdateOutfitLogInput {
+  occasions?: string[];
+  worn_on?: string;
+  note?: string | null;
+}
+
+export async function updateOutfitLog(
+  id: string,
+  patch: UpdateOutfitLogInput,
+): Promise<OutfitLog> {
+  const { data, error } = await supabase
+    .from("outfit_logs")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as OutfitLog;
+}
+
 export interface ListLogsOptions {
   from?: string; // YYYY-MM-DD
   to?: string; // YYYY-MM-DD
