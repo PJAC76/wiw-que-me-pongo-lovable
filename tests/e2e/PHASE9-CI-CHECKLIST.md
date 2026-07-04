@@ -145,7 +145,7 @@ Eliminar o actualizar el comentario de desactivación temporal.
 
 ## 7. Validación final antes de merge
 
-- [ ] Los 5 secretos de GitHub Actions están configurados.
+- [ ] Los **6** secretos de GitHub Actions están configurados (§1.1).
 - [ ] El usuario de test existe, está confirmado y tiene `profile` + `wardrobe` por defecto.
 - [ ] Las migraciones requeridas están aplicadas en el backend de producción/preview.
 - [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores.
