@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Sparkles, RefreshCw, Shirt, Check, Loader2 } from "lucide-react";
+import { Sparkles, RefreshCw, Shirt, Check, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,9 +16,26 @@ import {
   currentSeason,
   type OutfitSuggestion,
 } from "@/lib/outfit-suggestions";
+import { OCCASIONS as ALL_OCCASIONS, logOutfit } from "@/lib/outfit-logs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 
 
-const OCCASIONS = ["casual", "trabajo", "formal", "deporte", "fiesta"] as const;
+const FILTER_OCCASIONS = [
+  "casual",
+  "trabajo",
+  "formal",
+  "deporte",
+  "fiesta",
+  "boda",
+  "evento",
+  "cena",
+  "comida",
+] as const;
 
 export const Route = createFileRoute("/_authenticated/recommendations")({
   head: () => ({
