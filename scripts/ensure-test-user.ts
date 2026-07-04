@@ -78,6 +78,18 @@ function describeKey(serviceKey: string): string {
   return `JWT con role=${role}, iss=${issuer}`;
 }
 
+function getJwtIssuerHost(serviceKey: string): string | null {
+  const payload = decodeJwtPayload(serviceKey);
+  const issuer = typeof payload?.iss === "string" ? payload.iss : null;
+  if (!issuer) return null;
+
+  try {
+    return new URL(issuer).host;
+  } catch {
+    return null;
+  }
+}
+
 function authHeaders(serviceKey: string): HeadersInit {
   const headers: Record<string, string> = {
     apikey: serviceKey,
@@ -179,6 +191,14 @@ async function main() {
     projectHost = new URL(url).host;
   } catch {
     console.error("::error::SUPABASE_URL no es una URL válida.");
+    process.exit(1);
+  }
+
+  const keyIssuerHost = getJwtIssuerHost(serviceKey);
+  if (keyIssuerHost && keyIssuerHost !== projectHost) {
+    console.error(
+      `::error::La SUPABASE_SERVICE_ROLE_KEY pertenece a ${keyIssuerHost}, pero SUPABASE_URL apunta a ${projectHost}. Copia la service_role key del mismo proyecto que VITE_SUPABASE_URL.`,
+    );
     process.exit(1);
   }
 
