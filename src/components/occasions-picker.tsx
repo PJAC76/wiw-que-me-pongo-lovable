@@ -73,11 +73,17 @@ export function OccasionsPicker({
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  const normalizedValue = useMemo(() => normalizeOccasions(value), [value]);
+
+  const emit = (next: string[]) => onChange(normalizeOccasions(next));
+
   const toggle = (o: string) => {
-    if (value.includes(o)) {
-      onChange(value.filter((x) => x !== o));
+    const key = o.trim().toLowerCase();
+    if (!key) return;
+    if (normalizedValue.includes(key)) {
+      emit(normalizedValue.filter((x) => x !== key));
     } else {
-      onChange([...value, o]);
+      emit([...normalizedValue, key]);
     }
   };
 
