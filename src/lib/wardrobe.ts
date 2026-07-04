@@ -207,3 +207,27 @@ export async function deleteClothingItem(
   const { error } = await supabase.from("clothing_items").delete().eq("id", id);
   if (error) throw error;
 }
+
+/**
+ * Marca varias prendas como usadas ahora: incrementa `times_worn` y
+ * actualiza `last_worn_at`. Se usa desde la pantalla de recomendaciones
+ * cuando el usuario confirma "Usado hoy" sobre un outfit sugerido.
+ *
+ * Nota: se hace en cliente con lecturas locales previas de `times_worn`.
+ * Cuando se implemente la Fase 4 (registro diario), esto pasará a una
+ * RPC atómica junto con la creación de `daily_outfit_logs`.
+ */
+export async function markItemsWornNow(
+  items: Array<{ id: string; times_worn: number }>,
+): Promise<void> {
+  const now = new Date().toISOString();
+  await Promise.all(
+    items.map((it) =>
+      supabase
+        .from("clothing_items")
+        .update({ times_worn: (it.times_worn ?? 0) + 1, last_worn_at: now })
+        .eq("id", it.id),
+    ),
+  );
+}
+
