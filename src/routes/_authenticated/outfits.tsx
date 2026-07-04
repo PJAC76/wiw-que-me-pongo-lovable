@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  OCCASIONS,
   deleteOutfitLog,
   formatDayLabel,
   groupLogsByWeek,
@@ -42,6 +41,10 @@ import {
   exportOutfitLogsCSV,
   exportOutfitLogsPDF,
 } from "@/lib/export-outfit-logs";
+import {
+  OccasionsPicker,
+  pushRecentOccasions,
+} from "@/components/occasions-picker";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
@@ -72,7 +75,6 @@ function OutfitsHistoryScreen() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
-  const [occasionQuery, setOccasionQuery] = useState("");
 
   const filters = useMemo(
     () => ({
@@ -103,9 +105,8 @@ function OutfitsHistoryScreen() {
 
   const weeks = useMemo(() => groupLogsByWeek(logs ?? []), [logs]);
 
-  const filteredOccasions = OCCASIONS.filter((o) =>
-    o.toLowerCase().includes(occasionQuery.toLowerCase()),
-  );
+
+
 
   const activeFilters =
     (from ? 1 : 0) + (to ? 1 : 0) + selectedOccasions.length;
@@ -223,47 +224,11 @@ function OutfitsHistoryScreen() {
             align="start"
             className="w-[92vw] max-w-[420px] p-3"
           >
-            <Input
-              placeholder="Buscar ocasión…"
-              value={occasionQuery}
-              onChange={(e) => setOccasionQuery(e.target.value)}
-              className="mb-3"
+            <OccasionsPicker
+              value={selectedOccasions}
+              onChange={setSelectedOccasions}
+              autoFocus
             />
-            <div className="flex max-h-72 flex-wrap gap-1.5 overflow-y-auto">
-              {filteredOccasions.map((o) => {
-                const active = selectedOccasions.includes(o);
-                return (
-                  <button
-                    key={o}
-                    type="button"
-                    onClick={() =>
-                      setSelectedOccasions((prev) =>
-                        prev.includes(o)
-                          ? prev.filter((x) => x !== o)
-                          : [...prev, o],
-                      )
-                    }
-                    className={
-                      "rounded-full border px-3 py-1 text-xs capitalize transition " +
-                      (active
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground")
-                    }
-                  >
-                    {o}
-                  </button>
-                );
-              })}
-            </div>
-            {selectedOccasions.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setSelectedOccasions([])}
-                className="mt-3 text-xs text-muted-foreground underline"
-              >
-                Quitar todas
-              </button>
-            )}
           </PopoverContent>
         </Popover>
 
@@ -448,11 +413,6 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(log.occasions);
-  const [query, setQuery] = useState("");
-
-  const filtered = OCCASIONS.filter((o) =>
-    o.toLowerCase().includes(query.toLowerCase()),
-  );
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
@@ -472,6 +432,7 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
     mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
     onSuccess: () => {
       const previous = log.occasions;
+      pushRecentOccasions(selected);
       invalidate();
       setOpen(false);
       toast.success("Ocasiones actualizadas", {
@@ -490,10 +451,7 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (v) {
-          setSelected(log.occasions);
-          setQuery("");
-        }
+        if (v) setSelected(log.occasions);
       }}
     >
       <PopoverTrigger asChild>
@@ -507,47 +465,8 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[92vw] max-w-[380px] p-3">
-        <Input
-          placeholder="Buscar ocasión…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="mb-3"
-        />
-        <div className="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto">
-          {filtered.map((o) => {
-            const active = selected.includes(o);
-            return (
-              <button
-                key={o}
-                type="button"
-                onClick={() =>
-                  setSelected((prev) =>
-                    prev.includes(o)
-                      ? prev.filter((x) => x !== o)
-                      : [...prev, o],
-                  )
-                }
-                className={
-                  "rounded-full border px-3 py-1 text-xs capitalize transition " +
-                  (active
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground")
-                }
-              >
-                {o}
-              </button>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => setSelected([])}
-            className="text-xs text-muted-foreground underline disabled:opacity-50"
-            disabled={selected.length === 0}
-          >
-            Quitar todas
-          </button>
+        <OccasionsPicker value={selected} onChange={setSelected} autoFocus />
+        <div className="mt-3 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={() => save.mutate()}
