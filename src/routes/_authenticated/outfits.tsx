@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import {
-  OCCASIONS,
   deleteOutfitLog,
   formatDayLabel,
   groupLogsByWeek,
