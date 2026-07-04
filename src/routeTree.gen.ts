@@ -20,6 +20,7 @@ import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_auth
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
+import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated/favorites'
 import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e2e'
 import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
 import { Route as AuthenticatedWardrobeAddRouteImport } from './routes/_authenticated/wardrobe.add'
@@ -81,6 +82,11 @@ const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   path: '/feed',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ApiPublicSeedE2eRoute = ApiPublicSeedE2eRouteImport.update({
   id: '/api/public/seed-e2e',
   path: '/api/public/seed-e2e',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/outfits': typeof AuthenticatedOutfitsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/favorites'
     | '/feed'
     | '/outfits'
     | '/profile'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/favorites'
     | '/feed'
     | '/outfits'
     | '/profile'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/_authenticated/favorites'
     | '/_authenticated/feed'
     | '/_authenticated/outfits'
     | '/_authenticated/profile'
@@ -307,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/favorites': {
+      id: '/_authenticated/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof AuthenticatedFavoritesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/seed-e2e': {
       id: '/api/public/seed-e2e'
       path: '/api/public/seed-e2e'
@@ -376,6 +395,7 @@ const AuthenticatedWardrobeRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedOutfitsRoute: typeof AuthenticatedOutfitsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -385,6 +405,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedOutfitsRoute: AuthenticatedOutfitsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
