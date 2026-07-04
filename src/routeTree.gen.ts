@@ -14,6 +14,8 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as OutfitIdRouteImport } from './routes/outfit.$id'
 import { Route as AuthenticatedWardrobeRouteImport } from './routes/_authenticated/wardrobe'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
@@ -49,6 +51,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutfitIdRoute = OutfitIdRouteImport.update({
+  id: '/outfit/$id',
+  path: '/outfit/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWardrobeRoute = AuthenticatedWardrobeRouteImport.update({
@@ -128,6 +140,8 @@ export interface FileRoutesByFullPath {
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -146,6 +160,8 @@ export interface FileRoutesByTo {
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -166,6 +182,8 @@ export interface FileRoutesById {
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/_authenticated/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -186,6 +204,8 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/stats'
     | '/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
     | '/api/public/envcheck'
@@ -204,6 +224,8 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/stats'
     | '/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
     | '/api/public/envcheck'
@@ -223,6 +245,8 @@ export interface FileRouteTypes {
     | '/_authenticated/recommendations'
     | '/_authenticated/stats'
     | '/_authenticated/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/_authenticated/wardrobe/$itemId'
     | '/_authenticated/wardrobe/add'
     | '/api/public/envcheck'
@@ -236,6 +260,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  OutfitIdRoute: typeof OutfitIdRoute
+  UUsernameRoute: typeof UUsernameRoute
   ApiPublicEnvcheckRoute: typeof ApiPublicEnvcheckRoute
   ApiPublicSeedE2eRoute: typeof ApiPublicSeedE2eRoute
 }
@@ -275,6 +301,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outfit/$id': {
+      id: '/outfit/$id'
+      path: '/outfit/$id'
+      fullPath: '/outfit/$id'
+      preLoaderRoute: typeof OutfitIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/wardrobe': {
@@ -423,6 +463,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  OutfitIdRoute: OutfitIdRoute,
+  UUsernameRoute: UUsernameRoute,
   ApiPublicEnvcheckRoute: ApiPublicEnvcheckRoute,
   ApiPublicSeedE2eRoute: ApiPublicSeedE2eRoute,
 }
