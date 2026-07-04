@@ -54,6 +54,34 @@ export const OCCASIONS = [
 
 export type Occasion = (typeof OCCASIONS)[number];
 
+/**
+ * Normaliza una lista de ocasiones: recorta espacios, pasa a minúsculas y
+ * elimina duplicados preservando el orden de aparición. Se usa tanto en el
+ * filtro del historial como en el editor de cada entrada para que ambas
+ * superficies compartan exactamente la misma representación.
+ */
+export function normalizeOccasions(list: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    if (typeof raw !== "string") continue;
+    const o = raw.trim().toLowerCase();
+    if (!o || seen.has(o)) continue;
+    seen.add(o);
+    out.push(o);
+  }
+  return out;
+}
+
+/** Comparación estable e independiente del orden entre dos listas de ocasiones. */
+export function sameOccasions(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort();
+  const sb = [...b].sort();
+  for (let i = 0; i < sa.length; i++) if (sa[i] !== sb[i]) return false;
+  return true;
+}
+
 export interface OutfitLog {
   id: string;
   user_id: string;
