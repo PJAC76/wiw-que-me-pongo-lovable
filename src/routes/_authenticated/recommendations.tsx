@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Sparkles, RefreshCw, Shirt } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Sparkles, RefreshCw, Shirt, Check, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
   listClothingItems,
+  markItemsWornNow,
   type ClothingItem,
 } from "@/lib/wardrobe";
 import {
@@ -14,6 +16,7 @@ import {
   currentSeason,
   type OutfitSuggestion,
 } from "@/lib/outfit-suggestions";
+
 
 const OCCASIONS = ["casual", "trabajo", "formal", "deporte", "fiesta"] as const;
 
