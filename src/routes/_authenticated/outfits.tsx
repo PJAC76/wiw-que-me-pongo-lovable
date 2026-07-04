@@ -576,3 +576,73 @@ function EmptyHistory({ hasFilters }: { hasFilters: boolean }) {
     </div>
   );
 }
+
+function ExportMenu({
+  logs,
+  itemsById,
+  filters,
+  disabled,
+}: {
+  logs: OutfitLog[];
+  itemsById: Map<string, ClothingItem>;
+  filters: { from?: string; to?: string; occasions?: string[] };
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handle = (type: "csv" | "pdf") => {
+    try {
+      if (type === "csv") exportOutfitLogsCSV(logs, itemsById, filters);
+      else exportOutfitLogsPDF(logs, itemsById, filters);
+      toast.success(
+        `Historial exportado (${logs.length} ${
+          logs.length === 1 ? "registro" : "registros"
+        })`,
+      );
+      setOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message ?? "No se pudo exportar");
+    }
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground disabled:opacity-50"
+        >
+          <Download className="h-3 w-3" strokeWidth={1.75} /> Exportar
+          <span className="text-[10px] text-muted-foreground">
+            ({logs.length})
+          </span>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-2">
+        <p className="mb-2 px-2 pt-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Exportar con filtros actuales
+        </p>
+        <button
+          type="button"
+          onClick={() => handle("csv")}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground transition hover:bg-secondary"
+        >
+          <FileSpreadsheet className="h-4 w-4" strokeWidth={1.5} />
+          <span className="flex-1 text-left">CSV</span>
+          <span className="text-[10px] text-muted-foreground">.csv</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handle("pdf")}
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground transition hover:bg-secondary"
+        >
+          <FileText className="h-4 w-4" strokeWidth={1.5} />
+          <span className="flex-1 text-left">PDF</span>
+          <span className="text-[10px] text-muted-foreground">.pdf</span>
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
