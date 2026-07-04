@@ -344,14 +344,32 @@ function QuickChip({ label, onClick }: { label: string; onClick: () => void }) {
 function LogCard({
   log,
   itemsById,
+  published,
 }: {
   log: OutfitLog;
   itemsById: Map<string, ClothingItem>;
+  published: PublicOutfit | null;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const [publishOpen, setPublishOpen] = useState(false);
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["my_public_outfits", user?.id] });
+  };
+
+  const unpublishMut = useMutation({
+    mutationFn: () =>
+      published
+        ? unpublishOutfit(published.id, published.image_path)
+        : Promise.resolve(),
+    onSuccess: () => {
+      toast.success("Retirado del feed");
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo retirar"),
+  });
+
 
   const restore = useMutation({
     mutationFn: async () => {
