@@ -159,6 +159,13 @@ function OutfitsHistoryScreen() {
             <X className="h-3 w-3" /> Limpiar ({activeFilters})
           </button>
         )}
+        <ExportMenu
+          logs={logs ?? []}
+          itemsById={itemsById}
+          filters={filters}
+          disabled={isLoading || (logs?.length ?? 0) === 0}
+        />
+        )}
       </div>
 
       {/* Rango de fechas manual */}
