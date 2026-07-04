@@ -136,6 +136,25 @@ on:
 
 Eliminar o actualizar el comentario de desactivación temporal.
 
+### 5.1 Ejecutar manualmente con workflow_dispatch
+
+Actualmente el workflow está configurado solo con `on: workflow_dispatch`, por lo que no se dispara automáticamente. Para ejecutarlo a demanda:
+
+1. Abrir el repo en GitHub: `PJAC76/wiw-que-me-pongo-lovable`.
+2. Ir a la pestaña **Actions**.
+3. En el panel lateral izquierdo, seleccionar el workflow **E2E · Wardrobe AI flow**.
+4. Pulsar el botón **Run workflow** (aparece a la derecha del listado de runs).
+5. En el desplegable:
+   - **Use workflow from**: seleccionar la rama que contiene el workflow, normalmente `main`. Si se quiere probar una rama de feature, elegir esa rama.
+   - **No hay campos de inputs adicionales**: el workflow no define `workflow_dispatch.inputs`, así que no se piden parámetros como email o entorno.
+6. Pulsar el botón verde **Run workflow**.
+7. GitHub redirige a la página del run recién creado. El job `wardrobe-ai-flow` aparece en cola; al hacer clic se ven los logs en tiempo real.
+
+Notas sobre entornos:
+
+- Este workflow **no usa GitHub Environments** (deployment environments). Los secretos son repository secrets, por lo que no hay que seleccionar un entorno tipo `production` o `staging`.
+- Si en el futuro se quieren separar secretos por entorno, habría que mover los secrets a un environment y añadir `environment: <nombre>` al job, pero eso no es necesario en Fase 9.
+
 ## 6. Ajustes adicionales recomendados en Fase 9
 
 - **Actualizar `actions/upload-artifact@v4`:** GitHub ya alerta de que Node 20 está deprecado. Si aún hay aviso, actualizar a la versión recomendada por GitHub.
@@ -148,7 +167,7 @@ Eliminar o actualizar el comentario de desactivación temporal.
 - [ ] Los **6** secretos de GitHub Actions están configurados (§1.1).
 - [ ] El usuario de test existe, está confirmado y tiene `profile` + `wardrobe` por defecto.
 - [ ] Las migraciones requeridas están aplicadas en el backend de producción/preview.
-- [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores.
+- [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores (ver §5.1).
 - [ ] Se restauran los triggers `push` y `pull_request` del workflow.
 - [ ] Se borra o securiza `src/routes/api/public/seed-e2e.ts` si ya no se necesita.
 - [ ] No quedan referencias a `TEST_EMAIL` / `TEST_PASSWORD` en logs ni screenshots.
