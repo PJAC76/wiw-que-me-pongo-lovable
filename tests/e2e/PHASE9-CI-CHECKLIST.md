@@ -150,7 +150,9 @@ python tests/e2e/wardrobe-ai-flow.spec.py
 
 ## 5. Re-activar el workflow
 
-Editar `.github/workflows/e2e-wardrobe-ai.yml` y restaurar el bloque `on`:
+Editar `.github/workflows/e2e-wardrobe-ai.yml` y:
+
+1. Restaurar el bloque `on`:
 
 ```yaml
 on:
@@ -160,6 +162,10 @@ on:
     branches: [main]
   workflow_dispatch:
 ```
+
+2. Re-añadir el paso `Ensure test user` y la variable `SUPABASE_SERVICE_ROLE_KEY` al bloque `env`.
+3. Re-añadir `SUPABASE_SERVICE_ROLE_KEY` al paso `Guard — required secrets present`.
+4. Asegurarse de que `SUPABASE_SERVICE_ROLE_KEY` es la del proyecto `gjtjejluwrjnntyzrsks` (ver diagnóstico en §2.1).
 
 Eliminar o actualizar el comentario de desactivación temporal.
 
