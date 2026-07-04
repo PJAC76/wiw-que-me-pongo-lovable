@@ -29,14 +29,11 @@ jobs:
       SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-      # Necesario para crear/actualizar el usuario de test vía Admin API.
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
     steps:
       - name: Guard — required secrets present
         run: |
           missing=()
-          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
+          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
             if [ -z "${!v:-}" ]; then missing+=("$v"); fi
           done
           if [ ${#missing[@]} -gt 0 ]; then
@@ -61,10 +58,6 @@ jobs:
         run: |
           python -m pip install --no-cache-dir playwright
           python -m playwright install --with-deps chromium
-
-      - name: Ensure test user (create or update password)
-        run: bun run scripts/ensure-test-user.ts
-
 
       - name: Start dev server
         run: |
