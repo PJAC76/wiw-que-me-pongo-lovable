@@ -22,6 +22,8 @@ import {
   groupLogsByWeek,
   listOutfitLogs,
   logOutfit,
+  normalizeOccasions,
+  sameOccasions,
   updateOutfitLog,
   type OutfitLog,
 } from "@/lib/outfit-logs";
