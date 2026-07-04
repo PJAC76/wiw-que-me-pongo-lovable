@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Sparkles, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { OCCASIONS } from "@/lib/outfit-logs";
+import { OCCASIONS, normalizeOccasions } from "@/lib/outfit-logs";
 import { cn } from "@/lib/utils";
 
 const RECENT_KEY = "wiw:recent-occasions";
