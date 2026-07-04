@@ -289,7 +289,8 @@ async def main():
                 pass
 
             await page.wait_for_function(
-                "() => !!document.querySelector('main img[data-view=\"clean\"]')",
+                "() => { const el = document.querySelector('main img[data-view=\"clean\"]'); "
+                "return !!el && el.complete && el.naturalWidth > 0; }",
                 timeout=25000,
             )
 
