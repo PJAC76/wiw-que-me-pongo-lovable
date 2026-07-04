@@ -351,11 +351,37 @@ function LogCard({
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+
+  const restore = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Sesión no disponible");
+      return logOutfit({
+        user_id: user.id,
+        worn_on: log.worn_on,
+        occasions: log.occasions,
+        item_ids: log.item_ids,
+        note: log.note,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Registro restaurado");
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo restaurar"),
+  });
+
   const del = useMutation({
     mutationFn: () => deleteOutfitLog(log.id),
     onSuccess: () => {
-      toast.success("Registro eliminado");
-      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+      invalidate();
+      toast.success("Registro eliminado", {
+        action: {
+          label: "Deshacer",
+          onClick: () => restore.mutate(),
+        },
+      });
     },
     onError: (e) => toast.error((e as Error).message ?? "No se pudo eliminar"),
   });
