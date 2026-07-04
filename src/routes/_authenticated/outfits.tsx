@@ -109,6 +109,28 @@ function OutfitsHistoryScreen() {
     return map;
   }, [items]);
 
+  const { data: publicOutfits } = useQuery({
+    queryKey: ["my_public_outfits", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("public_outfits")
+        .select("*")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return (data ?? []) as PublicOutfit[];
+    },
+    enabled: !!user,
+  });
+
+  const publishedByLogId = useMemo(() => {
+    const map = new Map<string, PublicOutfit>();
+    (publicOutfits ?? []).forEach((p) => {
+      if (p.log_id) map.set(p.log_id, p);
+    });
+    return map;
+  }, [publicOutfits]);
+
+
   const weeks = useMemo(() => groupLogsByWeek(logs ?? []), [logs]);
 
 
