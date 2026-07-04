@@ -64,7 +64,7 @@ Los alias sin prefijo `VITE_` existen porque el runtime server (server functions
 
 ## 2. Provisión automática del usuario de test
 
-El workflow ejecuta `bun run scripts/ensure-test-user.ts` como paso previo a Playwright. El script:
+El workflow ejecutaba `bun run scripts/ensure-test-user.ts` como paso previo a Playwright, pero **se eliminó temporalmente** porque la `SUPABASE_SERVICE_ROLE_KEY` disponible era rechazada con `401 Invalid API key`. Cuando se re-active en Fase 9, el script:
 
 1. Busca el usuario por `TEST_EMAIL` vía Admin API (paginado).
 2. Si existe → actualiza su password a `TEST_PASSWORD` y fuerza `email_confirm=true`.
@@ -72,7 +72,7 @@ El workflow ejecuta `bun run scripts/ensure-test-user.ts` como paso previo a Pla
 
 Por tanto **no hace falta crear el usuario a mano** una vez configurados los secretos. El trigger `handle_new_user` genera el `profile` y el `wardrobe` por defecto en el primer alta.
 
-Para ejecutarlo en local:
+Para ejecutarlo en local (requiere `SUPABASE_SERVICE_ROLE_KEY` válida):
 
 ```bash
 export SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... TEST_EMAIL=... TEST_PASSWORD=...
@@ -80,6 +80,31 @@ bun run scripts/ensure-test-user.ts
 ```
 
 > El endpoint legacy `/api/public/seed-e2e` queda obsoleto para CI; considerar eliminarlo o rotar el token hardcodeado antes de publicar.
+
+### 2.1 Diagnóstico del fallo `401 Invalid API key` (histórico)
+
+Errores observados en las ejecuciones previas a Fase 9:
+
+- `listUsers falló: Invalid API key`
+- `listUsers falló: 401 Invalid API key. La key parece service_role por formato, pero Auth la rechaza: normalmente es de otro proyecto, está truncada, tiene comillas/espacios internos o ha sido rotada.`
+
+Causas probables:
+
+1. **Key de otro proyecto** — el formato JWT parece `service_role`, pero el `iss` (issuer) no coincide con `gjtjejluwrjnntyzrsks`.
+2. **Key truncada o con espacios/comillas** al pegarla en GitHub Actions → el JWT queda incompleto y la firma no valida.
+3. **Key rotada** — si se rotaron API keys en el backend, la anterior deja de funcionar inmediatamente.
+4. **Formato `sb_secret_...` vs JWT** — en Lovable Cloud pueden inyectarse claves nuevas (`sb_secret_*`) que la Data API/PostgREST acepta, pero la Auth Admin API (`supabase.auth.admin.listUsers`) **requiere un JWT válido con 3 partes**. Si la key no tiene formato JWT, el cliente Admin falla.
+
+Verificación mínima local antes de volver a configurarla en GitHub:
+
+```bash
+export SUPABASE_URL=https://gjtjejluwrjnntyzrsks.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=<key>
+node -e "const k=process.env.SUPABASE_SERVICE_ROLE_KEY; console.log('parts:', k.split('.').length, 'length:', k.length);"
+# Debe imprimir: parts: 3  length: ~160-220
+```
+
+Si `parts` no es `3`, la key no es un JWT de Admin API y `listUsers` fallará. En ese caso hay que obtener la `service_role` correcta del proyecto `gjtjejluwrjnntyzrsks` (solo posible con acceso al dashboard Supabase o mediante rotación por el owner de Lovable Cloud).
 
 
 
