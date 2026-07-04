@@ -417,10 +417,9 @@ function LogCard({
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar este registro?")) del.mutate();
-          }}
-          className="text-muted-foreground transition hover:text-destructive"
+          onClick={() => del.mutate()}
+          disabled={del.isPending}
+          className="text-muted-foreground transition hover:text-destructive disabled:opacity-50"
           aria-label="Eliminar registro"
         >
           <Trash2 className="h-4 w-4" strokeWidth={1.5} />
