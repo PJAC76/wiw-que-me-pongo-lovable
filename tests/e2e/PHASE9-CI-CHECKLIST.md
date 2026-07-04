@@ -1,5 +1,7 @@
 # Checklist Fase 9 — Preparar CI E2E antes de re-activar el workflow
 
+> **Estado actual (post-Fase 5, tras el último ajuste):** el workflow `.github/workflows/e2e-wardrobe-ai.yml` sigue desactivado (sólo `workflow_dispatch`) y **ya no ejecuta `scripts/ensure-test-user.ts`**. Se eliminó la dependencia de `SUPABASE_SERVICE_ROLE_KEY` porque la key disponible era rechazada por la Auth Admin API con `401 Invalid API key` a pesar de tener formato `service_role` / JWT correcto. El E2E funciona mientras el usuario `TEST_EMAIL` exista y `TEST_PASSWORD` sea válido, pero **no se auto-provisiona**. En Fase 9 hay que re-añadir el paso de provisión con una `SUPABASE_SERVICE_ROLE_KEY` válida para el proyecto actual (`gjtjejluwrjnntyzrsks`).
+
 > Archivo vinculado a `.github/workflows/e2e-wardrobe-ai.yml` (actualmente desactivado).
 > Tarea: re-activar CI en Fase 9 · migrar a producción.
 
@@ -16,9 +18,9 @@ Añadir en **Settings → Secrets and variables → Actions** del repo `PJAC76/w
 | 3 | `VITE_SUPABASE_URL` | URL completa del backend Supabase, formato `https://<project-ref>.supabase.co`. Sin barra final. Valor actual: `https://gjtjejluwrjnntyzrsks.supabase.co` | Copiar de `.env` local (variable `VITE_SUPABASE_URL`) | `env.VITE_SUPABASE_URL` (dev server Vite) + alias `env.SUPABASE_URL` (leído por `ensure-test-user.ts`) | Sí |
 | 4 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable/anon key. Formato nuevo: `sb_publishable_...` o JWT `eyJ...`. Valor actual: `sb_publishable_vIOR3LUJMfYCqd9o8NFiDA_6Yi7AYqp` | Copiar de `.env` local | `env.VITE_SUPABASE_PUBLISHABLE_KEY` (cliente Supabase del navegador durante Playwright) + alias `env.SUPABASE_PUBLISHABLE_KEY` | Sí |
 | 5 | `VITE_SUPABASE_PROJECT_ID` | Project ref (subdominio sin `https://` ni `.supabase.co`). Valor actual: `gjtjejluwrjnntyzrsks` | Copiar de `.env` local | `env.VITE_SUPABASE_PROJECT_ID` + alias `env.SUPABASE_PROJECT_ID` (referencia informativa; usada por el cliente generado) | Sí |
-| 6 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key del backend. Formato JWT `eyJ...` o `sb_secret_...`. **Nunca** commitearla ni exponerla al cliente | Solicitar rotación al owner del proyecto (no disponible en el dashboard de Lovable Cloud); en proyectos Supabase directos, Settings → API → `service_role` | `env.SUPABASE_SERVICE_ROLE_KEY` — usado **solo** por el paso `Ensure test user` (Admin API). No se pasa al dev server ni al navegador | Sí |
+| 6 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key del backend. Formato JWT `eyJ...` o `sb_secret_...`. **Nunca** commitearla ni exponerla al cliente | En proyectos Supabase directos, Settings → API → `service_role`. **En Lovable Cloud no está disponible en el dashboard; requiere rotación/owner del proyecto.** | `env.SUPABASE_SERVICE_ROLE_KEY` — usado **solo** por el paso `Ensure test user` (Admin API). Actualmente el workflow no lo usa; se re-añadirá en Fase 9 | Sí en Fase 9; No hoy |
 
-> Total: **6 secretos**. Sin cualquiera de ellos, el paso `Guard — required secrets present` aborta el job con `::error::Missing required secrets: …` antes de gastar minutos de runner.
+> Total: **5 secretos activos hoy** (`TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`). En Fase 9 serán **6** con `SUPABASE_SERVICE_ROLE_KEY`. Sin cualquiera de los activos, el paso `Guard — required secrets present` aborta el job con `::error::Missing required secrets: …` antes de gastar minutos de runner.
 
 ### 1.2 Mapping secreto → variable de entorno en el workflow
 
@@ -44,9 +46,9 @@ Los alias sin prefijo `VITE_` existen porque el runtime server (server functions
 
 | Paso del workflow | Secretos que lee | Motivo |
 |---|---|---|
-| `Guard — required secrets present` | `TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Aborta pronto si falta alguno |
+| `Guard — required secrets present` | `TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Aborta pronto si falta alguno. **`SUPABASE_SERVICE_ROLE_KEY` no se checkea actualmente**; se re-añadirá en Fase 9 junto al paso `Ensure test user` |
 | `Install JS deps` / `Install Playwright + Chromium` | — | Sólo instalación |
-| `Ensure test user` (`bun run scripts/ensure-test-user.ts`) | `SUPABASE_URL` (alias de `VITE_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY`, `TEST_EMAIL`, `TEST_PASSWORD` | Crea/actualiza el usuario de test vía Admin API |
+| `Ensure test user` | — | **Actualmente deshabilitado.** En Fase 9: re-habilitar `bun run scripts/ensure-test-user.ts` que leerá `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TEST_EMAIL`, `TEST_PASSWORD` |
 | `Start dev server` (`bun run dev`) | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` (embebidas en el bundle cliente) | Vite necesita las `VITE_*` para inicializar el cliente del navegador |
 | `Run E2E — wardrobe AI flow` (`python tests/e2e/wardrobe-ai-flow.spec.py`) | `TEST_EMAIL`, `TEST_PASSWORD` | Playwright los lee vía `os.environ[...]` para hacer login |
 | `Upload screenshots + vite log on failure` | — | Sólo artefactos |
@@ -62,7 +64,7 @@ Los alias sin prefijo `VITE_` existen porque el runtime server (server functions
 
 ## 2. Provisión automática del usuario de test
 
-El workflow ejecuta `bun run scripts/ensure-test-user.ts` como paso previo a Playwright. El script:
+El workflow ejecutaba `bun run scripts/ensure-test-user.ts` como paso previo a Playwright, pero **se eliminó temporalmente** porque la `SUPABASE_SERVICE_ROLE_KEY` disponible era rechazada con `401 Invalid API key`. Cuando se re-active en Fase 9, el script:
 
 1. Busca el usuario por `TEST_EMAIL` vía Admin API (paginado).
 2. Si existe → actualiza su password a `TEST_PASSWORD` y fuerza `email_confirm=true`.
@@ -70,7 +72,7 @@ El workflow ejecuta `bun run scripts/ensure-test-user.ts` como paso previo a Pla
 
 Por tanto **no hace falta crear el usuario a mano** una vez configurados los secretos. El trigger `handle_new_user` genera el `profile` y el `wardrobe` por defecto en el primer alta.
 
-Para ejecutarlo en local:
+Para ejecutarlo en local (requiere `SUPABASE_SERVICE_ROLE_KEY` válida):
 
 ```bash
 export SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... TEST_EMAIL=... TEST_PASSWORD=...
@@ -78,6 +80,31 @@ bun run scripts/ensure-test-user.ts
 ```
 
 > El endpoint legacy `/api/public/seed-e2e` queda obsoleto para CI; considerar eliminarlo o rotar el token hardcodeado antes de publicar.
+
+### 2.1 Diagnóstico del fallo `401 Invalid API key` (histórico)
+
+Errores observados en las ejecuciones previas a Fase 9:
+
+- `listUsers falló: Invalid API key`
+- `listUsers falló: 401 Invalid API key. La key parece service_role por formato, pero Auth la rechaza: normalmente es de otro proyecto, está truncada, tiene comillas/espacios internos o ha sido rotada.`
+
+Causas probables:
+
+1. **Key de otro proyecto** — el formato JWT parece `service_role`, pero el `iss` (issuer) no coincide con `gjtjejluwrjnntyzrsks`.
+2. **Key truncada o con espacios/comillas** al pegarla en GitHub Actions → el JWT queda incompleto y la firma no valida.
+3. **Key rotada** — si se rotaron API keys en el backend, la anterior deja de funcionar inmediatamente.
+4. **Formato `sb_secret_...` vs JWT** — en Lovable Cloud pueden inyectarse claves nuevas (`sb_secret_*`) que la Data API/PostgREST acepta, pero la Auth Admin API (`supabase.auth.admin.listUsers`) **requiere un JWT válido con 3 partes**. Si la key no tiene formato JWT, el cliente Admin falla.
+
+Verificación mínima local antes de volver a configurarla en GitHub:
+
+```bash
+export SUPABASE_URL=https://gjtjejluwrjnntyzrsks.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=<key>
+node -e "const k=process.env.SUPABASE_SERVICE_ROLE_KEY; console.log('parts:', k.split('.').length, 'length:', k.length);"
+# Debe imprimir: parts: 3  length: ~160-220
+```
+
+Si `parts` no es `3`, la key no es un JWT de Admin API y `listUsers` fallará. En ese caso hay que obtener la `service_role` correcta del proyecto `gjtjejluwrjnntyzrsks` (solo posible con acceso al dashboard Supabase o mediante rotación por el owner de Lovable Cloud).
 
 
 
@@ -123,7 +150,9 @@ python tests/e2e/wardrobe-ai-flow.spec.py
 
 ## 5. Re-activar el workflow
 
-Editar `.github/workflows/e2e-wardrobe-ai.yml` y restaurar el bloque `on`:
+Editar `.github/workflows/e2e-wardrobe-ai.yml` y:
+
+1. Restaurar el bloque `on`:
 
 ```yaml
 on:
@@ -133,6 +162,10 @@ on:
     branches: [main]
   workflow_dispatch:
 ```
+
+2. Re-añadir el paso `Ensure test user` y la variable `SUPABASE_SERVICE_ROLE_KEY` al bloque `env`.
+3. Re-añadir `SUPABASE_SERVICE_ROLE_KEY` al paso `Guard — required secrets present`.
+4. Asegurarse de que `SUPABASE_SERVICE_ROLE_KEY` es la del proyecto `gjtjejluwrjnntyzrsks` (ver diagnóstico en §2.1).
 
 Eliminar o actualizar el comentario de desactivación temporal.
 
@@ -164,7 +197,9 @@ Notas sobre entornos:
 
 ## 7. Validación final antes de merge
 
-- [ ] Los **6** secretos de GitHub Actions están configurados (§1.1).
+- [ ] Los **5** secretos de GitHub Actions necesarios hoy están configurados (`TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`).
+- [ ] En Fase 9: configurar también `SUPABASE_SERVICE_ROLE_KEY` y verificar que es JWT de 3 partes y del proyecto `gjtjejluwrjnntyzrsks` (§2.1).
+- [ ] En Fase 9: re-añadir el paso `Ensure test user` al workflow y confirmar que `listUsers` no devuelve `401 Invalid API key`.
 - [ ] El usuario de test existe, está confirmado y tiene `profile` + `wardrobe` por defecto.
 - [ ] Las migraciones requeridas están aplicadas en el backend de producción/preview.
 - [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores (ver §5.1).
