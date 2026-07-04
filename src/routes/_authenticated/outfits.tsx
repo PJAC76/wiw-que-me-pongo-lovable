@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -22,6 +22,8 @@ import {
   groupLogsByWeek,
   listOutfitLogs,
   logOutfit,
+  normalizeOccasions,
+  sameOccasions,
   updateOutfitLog,
   type OutfitLog,
 } from "@/lib/outfit-logs";
@@ -412,7 +414,18 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>(log.occasions);
+  const canonical = useMemo(
+    () => normalizeOccasions(log.occasions),
+    [log.occasions],
+  );
+  const [selected, setSelected] = useState<string[]>(canonical);
+
+  // Si el registro cambia externamente (revert / refetch / edición en otra
+  // superficie) mientras el popover está cerrado, resincronizamos el borrador
+  // para no mostrar un estado obsoleto la próxima vez que se abra.
+  useEffect(() => {
+    if (!open) setSelected(canonical);
+  }, [canonical, open]);
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
@@ -429,9 +442,10 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   });
 
   const save = useMutation({
-    mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
+    mutationFn: () =>
+      updateOutfitLog(log.id, { occasions: normalizeOccasions(selected) }),
     onSuccess: () => {
-      const previous = log.occasions;
+      const previous = canonical;
       pushRecentOccasions(selected);
       invalidate();
       setOpen(false);
@@ -446,12 +460,14 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
       toast.error((e as Error).message ?? "No se pudo actualizar"),
   });
 
+  const dirty = !sameOccasions(normalizeOccasions(selected), canonical);
+
   return (
     <Popover
       open={open}
       onOpenChange={(v) => {
         setOpen(v);
-        if (v) setSelected(log.occasions);
+        if (v) setSelected(canonical);
       }}
     >
       <PopoverTrigger asChild>
@@ -469,8 +485,18 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
         <div className="mt-3 flex items-center justify-end gap-2">
           <button
             type="button"
+            onClick={() => {
+              setSelected(canonical);
+              setOpen(false);
+            }}
+            className="rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
             onClick={() => save.mutate()}
-            disabled={save.isPending}
+            disabled={save.isPending || !dirty}
             className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs text-background transition hover:bg-foreground/90 disabled:opacity-50"
           >
             <Check className="h-3 w-3" strokeWidth={2} />

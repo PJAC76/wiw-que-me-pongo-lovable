@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Sparkles, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { OCCASIONS } from "@/lib/outfit-logs";
+import { OCCASIONS, normalizeOccasions } from "@/lib/outfit-logs";
 import { cn } from "@/lib/utils";
 
 const RECENT_KEY = "wiw:recent-occasions";
@@ -47,9 +47,10 @@ function saveRecent(next: string[]) {
 }
 
 export function pushRecentOccasions(occasions: string[]) {
-  if (occasions.length === 0) return;
+  const norm = normalizeOccasions(occasions);
+  if (norm.length === 0) return;
   const prev = loadRecent();
-  const merged = [...occasions, ...prev.filter((o) => !occasions.includes(o))];
+  const merged = normalizeOccasions([...norm, ...prev]);
   saveRecent(merged.slice(0, MAX_RECENT));
 }
 
@@ -72,11 +73,17 @@ export function OccasionsPicker({
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  const normalizedValue = useMemo(() => normalizeOccasions(value), [value]);
+
+  const emit = (next: string[]) => onChange(normalizeOccasions(next));
+
   const toggle = (o: string) => {
-    if (value.includes(o)) {
-      onChange(value.filter((x) => x !== o));
+    const key = o.trim().toLowerCase();
+    if (!key) return;
+    if (normalizedValue.includes(key)) {
+      emit(normalizedValue.filter((x) => x !== key));
     } else {
-      onChange([...value, o]);
+      emit([...normalizedValue, key]);
     }
   };
 
@@ -137,9 +144,9 @@ export function OccasionsPicker({
       </div>
 
       {/* Seleccionadas dentro del picker */}
-      {value.length > 0 && (
+      {normalizedValue.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {value.map((o) => (
+          {normalizedValue.map((o) => (
             <button
               key={`sel-${o}`}
               type="button"
@@ -150,10 +157,10 @@ export function OccasionsPicker({
               <X className="h-3 w-3" strokeWidth={2} />
             </button>
           ))}
-          {value.length > 1 && (
+          {normalizedValue.length > 1 && (
             <button
               type="button"
-              onClick={() => onChange([])}
+              onClick={() => emit([])}
               className="text-[11px] text-muted-foreground underline"
             >
               Quitar todas
@@ -170,7 +177,7 @@ export function OccasionsPicker({
               label="Recientes"
               icon={<Clock className="h-3 w-3" strokeWidth={1.5} />}
               options={quickRecent}
-              value={value}
+              value={normalizedValue}
               onToggle={toggle}
             />
           )}
@@ -178,7 +185,7 @@ export function OccasionsPicker({
             label="Populares"
             icon={<Sparkles className="h-3 w-3" strokeWidth={1.5} />}
             options={quickPopular}
-            value={value}
+            value={normalizedValue}
             onToggle={toggle}
           />
         </div>
@@ -198,7 +205,7 @@ export function OccasionsPicker({
             </p>
           ) : (
             filteredAll.map((o) => {
-              const active = value.includes(o);
+              const active = normalizedValue.includes(o);
               return (
                 <Chip
                   key={o}
