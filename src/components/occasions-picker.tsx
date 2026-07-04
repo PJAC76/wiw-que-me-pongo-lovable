@@ -343,7 +343,7 @@ function QuickRow({
   );
 }
 
-const Chip = React.forwardRef<
+const Chip = forwardRef<
   HTMLButtonElement,
   {
     label: string;
