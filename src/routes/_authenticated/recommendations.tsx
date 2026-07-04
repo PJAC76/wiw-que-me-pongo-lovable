@@ -101,7 +101,7 @@ function RecommendationsScreen() {
           active={occasion === null}
           onClick={() => setOccasion(null)}
         />
-        {OCCASIONS.map((o) => (
+        {FILTER_OCCASIONS.map((o) => (
           <OccasionChip
             key={o}
             label={o}
