@@ -36,7 +36,7 @@ jobs:
       - name: Guard — required secrets present
         run: |
           missing=()
-          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
+          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY; do
             if [ -z "${!v:-}" ]; then missing+=("$v"); fi
           done
           if [ ${#missing[@]} -gt 0 ]; then
