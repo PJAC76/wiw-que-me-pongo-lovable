@@ -47,6 +47,10 @@ import {
   OccasionsPicker,
   pushRecentOccasions,
 } from "@/components/occasions-picker";
+import { PublishOutfitDialog } from "@/components/publish-outfit-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { unpublishOutfit, type PublicOutfit } from "@/lib/social";
+import { Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
