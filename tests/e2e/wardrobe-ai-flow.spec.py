@@ -68,8 +68,8 @@ def assert_signed_url_ttl(url: str, min_ttl_s: int, *, label: str) -> int:
     return ttl
 
 BASE = "http://localhost:8080"
-SUPABASE_URL = "https://pcujmfhkyppmcahhgmmb.supabase.co"
-APIKEY = "sb_publishable_MGPlNp2vWCxd7ObFpi9dMg_LE9udqcQ"
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ["VITE_SUPABASE_URL"]
+APIKEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or os.environ["VITE_SUPABASE_PUBLISHABLE_KEY"]
 SCREENS = Path(__file__).parent / "screenshots" / "wardrobe-ai-flow"
 SCREENS.mkdir(parents=True, exist_ok=True)
 
