@@ -47,9 +47,10 @@ function saveRecent(next: string[]) {
 }
 
 export function pushRecentOccasions(occasions: string[]) {
-  if (occasions.length === 0) return;
+  const norm = normalizeOccasions(occasions);
+  if (norm.length === 0) return;
   const prev = loadRecent();
-  const merged = [...occasions, ...prev.filter((o) => !occasions.includes(o))];
+  const merged = normalizeOccasions([...norm, ...prev]);
   saveRecent(merged.slice(0, MAX_RECENT));
 }
 
