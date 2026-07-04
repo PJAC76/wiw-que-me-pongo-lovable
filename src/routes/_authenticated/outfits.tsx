@@ -42,6 +42,10 @@ import {
   exportOutfitLogsCSV,
   exportOutfitLogsPDF,
 } from "@/lib/export-outfit-logs";
+import {
+  OccasionsPicker,
+  pushRecentOccasions,
+} from "@/components/occasions-picker";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
