@@ -37,6 +37,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  exportOutfitLogsCSV,
+  exportOutfitLogsPDF,
+} from "@/lib/export-outfit-logs";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
