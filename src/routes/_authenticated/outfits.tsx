@@ -456,9 +456,50 @@ function LogCard({
       {log.note && (
         <p className="mt-3 text-xs text-muted-foreground">{log.note}</p>
       )}
+
+      <div className="mt-3 border-t border-border pt-3">
+        {published ? (
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <Link
+              to="/outfit/$id"
+              params={{ id: published.id }}
+              className="inline-flex items-center gap-1.5 text-foreground underline underline-offset-4"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Publicado en el feed
+            </Link>
+            <button
+              type="button"
+              onClick={() => unpublishMut.mutate()}
+              disabled={unpublishMut.isPending}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              Quitar del feed
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPublishOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <Share2 className="h-3.5 w-3.5" /> Publicar en el feed
+          </button>
+        )}
+      </div>
+
+      {user && (
+        <PublishOutfitDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          userId={user.id}
+          log={log}
+          onPublished={() => invalidate()}
+        />
+      )}
     </div>
   );
 }
+
 
 function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   const { user } = useAuth();
