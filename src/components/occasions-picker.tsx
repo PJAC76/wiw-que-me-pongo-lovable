@@ -144,9 +144,9 @@ export function OccasionsPicker({
       </div>
 
       {/* Seleccionadas dentro del picker */}
-      {value.length > 0 && (
+      {normalizedValue.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {value.map((o) => (
+          {normalizedValue.map((o) => (
             <button
               key={`sel-${o}`}
               type="button"
@@ -157,10 +157,10 @@ export function OccasionsPicker({
               <X className="h-3 w-3" strokeWidth={2} />
             </button>
           ))}
-          {value.length > 1 && (
+          {normalizedValue.length > 1 && (
             <button
               type="button"
-              onClick={() => onChange([])}
+              onClick={() => emit([])}
               className="text-[11px] text-muted-foreground underline"
             >
               Quitar todas
