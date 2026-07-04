@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Shirt, Trash2, X, Filter } from "lucide-react";
+import {
+  Calendar as CalendarIcon,
+  Shirt,
+  Trash2,
+  X,
+  Filter,
+  Pencil,
+  Check,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,6 +19,7 @@ import {
   formatDayLabel,
   groupLogsByWeek,
   listOutfitLogs,
+  updateOutfitLog,
   type OutfitLog,
 } from "@/lib/outfit-logs";
 import {
