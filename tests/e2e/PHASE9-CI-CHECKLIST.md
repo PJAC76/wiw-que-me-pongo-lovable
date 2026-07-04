@@ -167,7 +167,7 @@ Notas sobre entornos:
 - [ ] Los **6** secretos de GitHub Actions están configurados (§1.1).
 - [ ] El usuario de test existe, está confirmado y tiene `profile` + `wardrobe` por defecto.
 - [ ] Las migraciones requeridas están aplicadas en el backend de producción/preview.
-- [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores.
+- [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores (ver §5.1).
 - [ ] Se restauran los triggers `push` y `pull_request` del workflow.
 - [ ] Se borra o securiza `src/routes/api/public/seed-e2e.ts` si ya no se necesita.
 - [ ] No quedan referencias a `TEST_EMAIL` / `TEST_PASSWORD` en logs ni screenshots.
