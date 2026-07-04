@@ -142,6 +142,57 @@ export type Database = {
           },
         ]
       }
+      follows: {
+        Row: {
+          created_at: string
+          followee_id: string
+          follower_id: string
+        }
+        Insert: {
+          created_at?: string
+          followee_id: string
+          follower_id: string
+        }
+        Update: {
+          created_at?: string
+          followee_id?: string
+          follower_id?: string
+        }
+        Relationships: []
+      }
+      outfit_favorites: {
+        Row: {
+          created_at: string
+          public_outfit_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          public_outfit_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          public_outfit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_favorites_public_outfit_id_fkey"
+            columns: ["public_outfit_id"]
+            isOneToOne: false
+            referencedRelation: "public_outfit_stats"
+            referencedColumns: ["public_outfit_id"]
+          },
+          {
+            foreignKeyName: "outfit_favorites_public_outfit_id_fkey"
+            columns: ["public_outfit_id"]
+            isOneToOne: false
+            referencedRelation: "public_outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       outfit_logs: {
         Row: {
           created_at: string
@@ -174,6 +225,125 @@ export type Database = {
           worn_on?: string
         }
         Relationships: []
+      }
+      outfit_votes: {
+        Row: {
+          created_at: string
+          public_outfit_id: string
+          score: number
+          updated_at: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          public_outfit_id: string
+          score: number
+          updated_at?: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          public_outfit_id?: string
+          score?: number
+          updated_at?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outfit_votes_public_outfit_id_fkey"
+            columns: ["public_outfit_id"]
+            isOneToOne: false
+            referencedRelation: "public_outfit_stats"
+            referencedColumns: ["public_outfit_id"]
+          },
+          {
+            foreignKeyName: "outfit_votes_public_outfit_id_fkey"
+            columns: ["public_outfit_id"]
+            isOneToOne: false
+            referencedRelation: "public_outfits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      public_outfits: {
+        Row: {
+          id: string
+          image_path: string | null
+          image_url: string
+          is_hidden: boolean
+          item_ids: string[]
+          log_id: string | null
+          occasions: string[]
+          published_at: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          image_path?: string | null
+          image_url: string
+          is_hidden?: boolean
+          item_ids?: string[]
+          log_id?: string | null
+          occasions?: string[]
+          published_at?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          image_path?: string | null
+          image_url?: string
+          is_hidden?: boolean
+          item_ids?: string[]
+          log_id?: string | null
+          occasions?: string[]
+          published_at?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_outfits_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "outfit_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -225,7 +395,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_outfit_stats: {
+        Row: {
+          avg_score: number | null
+          favorites_count: number | null
+          public_outfit_id: string | null
+          votes_count: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {

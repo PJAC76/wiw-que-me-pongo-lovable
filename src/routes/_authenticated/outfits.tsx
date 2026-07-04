@@ -47,6 +47,10 @@ import {
   OccasionsPicker,
   pushRecentOccasions,
 } from "@/components/occasions-picker";
+import { PublishOutfitDialog } from "@/components/publish-outfit-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { unpublishOutfit, type PublicOutfit } from "@/lib/social";
+import { Share2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
@@ -104,6 +108,28 @@ function OutfitsHistoryScreen() {
     (items ?? []).forEach((i) => map.set(i.id, i));
     return map;
   }, [items]);
+
+  const { data: publicOutfits } = useQuery({
+    queryKey: ["my_public_outfits", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("public_outfits")
+        .select("*")
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return (data ?? []) as PublicOutfit[];
+    },
+    enabled: !!user,
+  });
+
+  const publishedByLogId = useMemo(() => {
+    const map = new Map<string, PublicOutfit>();
+    (publicOutfits ?? []).forEach((p) => {
+      if (p.log_id) map.set(p.log_id, p);
+    });
+    return map;
+  }, [publicOutfits]);
+
 
   const weeks = useMemo(() => groupLogsByWeek(logs ?? []), [logs]);
 
@@ -286,7 +312,13 @@ function OutfitsHistoryScreen() {
               </div>
               <ul className="space-y-3">
                 {w.logs.map((log) => (
-                  <LogCard key={log.id} log={log} itemsById={itemsById} />
+                  <LogCard
+                    key={log.id}
+                    log={log}
+                    itemsById={itemsById}
+                    published={publishedByLogId.get(log.id) ?? null}
+                  />
+
                 ))}
               </ul>
             </li>
@@ -312,14 +344,32 @@ function QuickChip({ label, onClick }: { label: string; onClick: () => void }) {
 function LogCard({
   log,
   itemsById,
+  published,
 }: {
   log: OutfitLog;
   itemsById: Map<string, ClothingItem>;
+  published: PublicOutfit | null;
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const invalidate = () =>
+  const [publishOpen, setPublishOpen] = useState(false);
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+    queryClient.invalidateQueries({ queryKey: ["my_public_outfits", user?.id] });
+  };
+
+  const unpublishMut = useMutation({
+    mutationFn: () =>
+      published
+        ? unpublishOutfit(published.id, published.image_path)
+        : Promise.resolve(),
+    onSuccess: () => {
+      toast.success("Retirado del feed");
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo retirar"),
+  });
+
 
   const restore = useMutation({
     mutationFn: async () => {
@@ -406,9 +456,50 @@ function LogCard({
       {log.note && (
         <p className="mt-3 text-xs text-muted-foreground">{log.note}</p>
       )}
+
+      <div className="mt-3 border-t border-border pt-3">
+        {published ? (
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <Link
+              to="/outfit/$id"
+              params={{ id: published.id }}
+              className="inline-flex items-center gap-1.5 text-foreground underline underline-offset-4"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Publicado en el feed
+            </Link>
+            <button
+              type="button"
+              onClick={() => unpublishMut.mutate()}
+              disabled={unpublishMut.isPending}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              Quitar del feed
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPublishOpen(true)}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <Share2 className="h-3.5 w-3.5" /> Publicar en el feed
+          </button>
+        )}
+      </div>
+
+      {user && (
+        <PublishOutfitDialog
+          open={publishOpen}
+          onOpenChange={setPublishOpen}
+          userId={user.id}
+          log={log}
+          onPublished={() => invalidate()}
+        />
+      )}
     </div>
   );
 }
+
 
 function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   const { user } = useAuth();

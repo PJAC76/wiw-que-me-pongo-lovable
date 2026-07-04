@@ -1,96 +1,105 @@
-# Plan de implementación — WIW / What I Wear
+# Fase 5 — Feed público, votos, favoritos y follows
 
-App mobile-first de armario virtual inteligente, estética Quiet Luxury, ES/EN, mercado España/Europa. Stack: React + TS + Vite + Tailwind + shadcn + TanStack Start + Lovable Cloud (Supabase) + IA (Ollama) + APIs externas (clima, remoción de fondo).
+Convierto WIW en algo social sin comentarios: cada usuario puede publicar voluntariamente entradas del registro diario, la comunidad las vota del 0 al 10 y guarda favoritas, y hay perfiles públicos con follow. Todo respeta la regla de privacidad: **nada se hace público sin confirmación explícita**.
 
-Construyo por fases, validando cada módulo antes de pasar al siguiente. El orden sigue el PRD: primero frontend con datos mock, luego backend real, luego integraciones IA/externas.
+## Alcance
 
----
+1. **Publicar una entrada del diario** al feed público (opt-in, con confirmación).
+2. **Feed global** vertical, mobile-first, con paginación por scroll.
+3. **Votos 0–10** visibles, un voto por usuario+outfit, editable.
+4. **Favoritos** privados.
+5. **Follows** entre usuarios (amigos, famosos, influencers — misma tabla).
+6. **Perfil público** `/u/$username` con outfits publicados, contadores y botón follow.
+7. **Handle público** (`username`) elegido por el usuario, único, editable en ajustes.
 
-## Fase 0 — Fundaciones (UI base, tema, navegación)
+Fuera de alcance en esta fase: comentarios, moderación admin (Fase 8), notificaciones push, feeds personalizados por IA (Fase 6 los consumirá).
 
-- Sistema de diseño Quiet Luxury en `src/styles.css`: paleta neutra premium (off-white, beige, negro suave), tipografía editorial (display serif + sans neutra), radios, sombras suaves, tokens semánticos.
-- Layout mobile-first con bottom tab bar (Armario, Outfits, Feed, Recomendaciones, Perfil) y top bar contextual.
-- i18n ES/EN (react-i18next) con selector y detección.
-- Rutas TanStack (todas con `head()` propio):
-  - `/` landing/redirect, `/auth/*`, `/onboarding`, `/_authenticated/*` (wardrobe, item/$id, add, outfits, outfit/$id, daily-log, feed, profile/$username, settings, premium, recommendations).
-- Estados vacíos, skeletons, toasts y componentes base (Card prenda, Card outfit, FeedItem, Filtros).
+## Modelo de datos (migración nueva `phase5_social.sql`)
 
-## Fase 1 — Auth y Onboarding
+- `profiles` (nueva tabla pública mínima):
+  - `id uuid PK → auth.users`, `username citext UNIQUE`, `display_name text`, `bio text`, `avatar_url text`, `created_at`, `updated_at`.
+  - Trigger `on auth.users insert` que crea la fila con `username` autogenerado provisional.
+  - RLS: `SELECT` público (`TO anon, authenticated`); `UPDATE` solo propietario.
+- `public_outfits`:
+  - `id uuid PK`, `user_id uuid`, `log_id uuid → outfit_logs (nullable, ON DELETE SET NULL)`, `image_url text NOT NULL`, `image_path text`, `title text`, `occasions text[]`, `item_ids uuid[]` (snapshot, para que borrar prendas no rompa la publicación), `published_at timestamptz default now()`, `is_hidden boolean default false`.
+  - RLS: `SELECT` público de las no ocultas + `SELECT` propietario de las suyas; `INSERT/UPDATE/DELETE` solo propietario.
+- `outfit_votes`:
+  - `PK (public_outfit_id, voter_id)`, `score int CHECK (0..10)`, `created_at`, `updated_at`.
+  - RLS: `SELECT` público (para pintar media); `INSERT/UPDATE/DELETE` solo el votante, y no permite votar los propios (`voter_id <> public_outfits.user_id` vía policy con subselect).
+- `outfit_favorites`:
+  - `PK (public_outfit_id, user_id)`, `created_at`.
+  - RLS: solo el propietario (`user_id = auth.uid()`) ve/gestiona sus favoritos.
+- `follows`:
+  - `PK (follower_id, followee_id)`, `created_at`, `CHECK follower <> followee`.
+  - RLS: `SELECT` público (para contadores y listas); `INSERT/DELETE` solo el follower.
+- **Vista `public_outfit_stats`** (o columnas calculadas al vuelo) con `avg_score`, `votes_count`, `favorites_count` para el feed sin N+1.
+- Todas las tablas: `GRANT` explícitos siguiendo la regla (SELECT a `anon` solo en las públicas; nada de anon en favoritos).
+- **Storage**: nuevo bucket público `public-outfits` para las imágenes publicadas (copia desde `wardrobe-images` privado al publicar), o mantener `wardrobe-images` y exponer URL firmada de larga duración renovable. Elijo **bucket público** `public-outfits` para simplicidad y cacheo CDN.
 
-- Lovable Cloud activado. Email/password + OAuth (Google/Apple preparado).
-- Tabla `profiles` con trigger al crear usuario, `user_roles` (admin/user) con `has_role()` security definer.
-- Pantallas: registro/login, recuperar contraseña, onboarding (idioma, país, estilo preferido, tallas, crear primer armario).
-- RLS estricta en todas las tablas: cada usuario solo ve lo suyo salvo contenido público.
+## Server functions (`src/lib/social.functions.ts`)
 
-## Fase 2 — Mi Armario (CRUD prendas, manual)
+Todas con `requireSupabaseAuth` salvo las lecturas anónimas:
 
-- Esquema: `wardrobes`, `clothing_items`, `clothing_item_shares` con RLS + GRANTS.
-- Storage bucket `wardrobe-images` (privado por defecto, signed URLs).
-- Pantalla "Mi Armario": grid de prendas, filtros (categoría, color, temporada, ocasión, marca, uso), búsqueda, contadores más/menos usadas.
-- Añadir prenda manual: formulario completo (categoría, subcategoría, color, marca, temporada, ocasión, precio, fecha compra, tallas, etiquetas).
-- Detalle de prenda: imagen grande, datos, historial de uso, outfits en los que aparece, acciones (editar, eliminar, compartir, marcar usada).
+- `publishOutfitLogFn({ logId, title? })` → copia imagen del log al bucket público, crea `public_outfits`, devuelve el registro.
+- `unpublishOutfitFn({ id })`
+- `voteOutfitFn({ id, score })` (upsert) — rechaza autovoto.
+- `removeVoteFn({ id })`
+- `favoriteOutfitFn({ id })` / `unfavoriteOutfitFn({ id })`
+- `followUserFn({ userId })` / `unfollowUserFn({ userId })`
+- `setUsernameFn({ username })` con validación regex `[a-z0-9_]{3,20}` y unicidad.
 
-## Fase 3 — Carga avanzada de prendas
+Lecturas públicas (server publishable client, sin bearer):
+- `listFeedFn({ cursor?, limit=20 })` → outfits + stats + author profile.
+- `getPublicOutfitFn({ id })`.
+- `getPublicProfileFn({ username })` + `listUserPublicOutfitsFn({ username, cursor? })`.
 
-- Carga por lote: múltiples imágenes, edición en cola, autocompletado de campos.
-- Escaneo por video: grabación/upload, extracción de frames, IA detecta candidatos, usuario confirma/edita/descarta cada uno.
-- Integración API configurable de remoción de fondo (guardar `image_url` y `background_removed_image_url`).
-- Hash de similitud (`similarity_hash`) para detección de duplicados al añadir.
+## Cliente y pantallas
 
-## Fase 4 — Outfits y Registro Diario
+- **`/_authenticated/feed`** (ya existe como placeholder): feed vertical, tarjeta grande con imagen, autor, ocasiones, media de votos, contador, botones **votar** (slider 0–10 con confirmación tap), **favorito**, **ver perfil**. Infinite scroll con TanStack Query `useInfiniteQuery`.
+- **`/u/$username`** (ruta **pública**, SSR on, con `head()` OG dinámico usando la primera imagen): avatar, bio, follow count, grid de outfits públicos. Si el visitante no está autenticado, botones muestran "Inicia sesión para X".
+- **`/outfit/$id`** (ruta **pública**, SSR on, con OG dinámico): detalle de un outfit publicado — imagen grande, autor, media, votos, botón votar/favorito/compartir.
+- **`/_authenticated/favorites`** nueva ruta accesible desde perfil.
+- **`/_authenticated/outfits`**: en cada entrada del log añado botón **"Publicar en el feed"** con `AlertDialog` de confirmación explícita ("Será visible públicamente en el feed y votable del 0 al 10"). Si ya está publicada, muestra "Publicado" + acción "Quitar del feed".
+- **`/_authenticated/profile`** (aún placeholder): lo mínimo para esta fase — mostrar handle `@username`, editar handle/bio/avatar, enlace a "Ver mi perfil público" y a "Favoritos". El resto (plan, analíticas, ajustes) sigue en Fases 7/8.
+- Actualizar bottom tab bar: el icono Feed pasa a ruta funcional; añadir badge "público" si aplica.
 
-- Esquemas: `outfits`, `outfit_items` (pivot), `daily_outfit_logs`.
-- Crear outfit: drag/tap prendas, título, ocasión, vibe, foto opcional.
-- Registro diario: foto del look, etiqueta de destino, evento, nota 0–10, prendas usadas (auto-incrementa `times_worn` / `last_worn_at`).
-- Historial de outfits: timeline + calendario, filtros.
+## Componentes nuevos
 
-## Fase 5 — Feed público, votos y favoritos
+- `PublicOutfitCard` (feed + perfil)
+- `VoteControl` (slider 0–10 con feedback háptico visual)
+- `FavoriteButton`, `FollowButton` (optimistas con TanStack Query)
+- `PublishOutfitDialog` (confirmación explícita + selección de título opcional)
+- `UsernameField` (validación en vivo, disponibilidad)
 
-- Esquemas: votos (0–10, visibles, sin comentarios), `favorites`, follows (amigos/famosos/influencers).
-- Publicar outfit voluntariamente con confirmación explícita ("será visible en feed público y votable").
-- Feed vertical global, perfil público (`/profile/$username`), votar, guardar en favoritos, seguir.
-- Sin comentarios en MVP.
+## SEO / OG
 
-## Fase 6 — IA: Recomendaciones y aprendizaje
+- `/u/$username` y `/outfit/$id` son públicos y compartibles: `head()` con `title`, `description`, `og:image` (imagen del outfit / avatar), `og:type=profile` o `article`, `twitter:card=summary_large_image`, JSON-LD `Person` / `CreativeWork`. Loader alimenta head con datos reales.
 
-- Proveedor IA configurable basado en Ollama (edge function / server fn con secret).
-- API externa de clima configurable (geo del usuario, current + forecast).
-- Endpoint recomendaciones: contexto = prendas disponibles + historial + notas + favoritos + votos sociales + clima + evento → 1..N propuestas con explicación.
-- Tabla `ai_recommendations` con feedback del usuario.
-- Aprendizaje progresivo: notas, favoritos y votos alimentan el contexto; señalización de prendas olvidadas.
-- Detección de prendas similares dentro del armario (hash + embeddings cuando disponibles).
+## Seguridad
 
-## Fase 7 — Analíticas del armario
+- Publicar copia la imagen al bucket público — el original privado no queda expuesto.
+- Autovoto bloqueado en policy y en UI.
+- Handle único con índice `citext`, validación server-side.
+- `is_hidden` deja preparado el borrado suave para moderación admin (Fase 8) sin cambiar esquema después.
+- Scan de seguridad al final de la fase.
 
-- `wardrobe_analytics` (materializado o calculado on-demand): total prendas/outfits, más/menos usadas, coste por uso, valor estimado, duplicados, infrautilizadas.
-- Pantalla de analíticas con gráficos sobrios (Recharts) y recomendaciones de limpieza.
+## Entrega por sub-pasos (para poder validar sin bloquear)
 
-## Fase 8 — Premium, Ajustes, Admin, Preparaciones futuras
-
-- Pantalla Plan Premium (visual, sin Stripe activo; flag `plan`/`subscription_status` en perfil).
-- Ajustes: idioma, país, privacidad, notificaciones (placeholder), exportar datos, eliminar cuenta.
-- Admin mínimo: cambio manual de plan/rol, moderación básica de outfits públicos (gated por `has_role('admin')`).
-- Preparación (no activar): Stripe, push notifications, import e-commerce/email.
-
-## Fase 9 — Pulido, SEO y publicación
-
-- Meta tags por ruta, OG/Twitter en perfiles y outfits públicos, sitemap, JSON-LD.
-- Auditoría de accesibilidad y rendimiento, lazy loading de imágenes, revisión Quiet Luxury en cada pantalla contra los diseños adjuntos.
-- QA de RLS, scan de seguridad, publicación.
-
----
+1. Migración `phase5_social.sql` + bucket `public-outfits` + tipos regenerados.
+2. Server functions y helpers `src/lib/social.ts`.
+3. Handle público + edición mínima en `/profile`.
+4. Publicar/despublicar desde `/outfits` con confirmación.
+5. Feed funcional `/feed` con votos y favoritos.
+6. Perfil público `/u/$username` + detalle `/outfit/$id` con SEO.
+7. Follows + lista de favoritos.
+8. Verificación E2E (Playwright): publicar → votar desde otro usuario → aparece en feed → favorito → follow → perfil público accesible sin sesión.
 
 ## Detalles técnicos clave
 
-- **Privacidad**: armario privado por defecto; visibilidad granular por prenda/outfit (`private`, `shared_with_friends`, `public`); RLS en todas las tablas.
-- **Roles**: `user_roles` separada con `app_role` enum + `has_role()` SECURITY DEFINER (nunca rol en `profiles`).
-- **Storage**: imágenes privadas con signed URLs; los outfits públicos exponen URL pública solo tras publicación explícita.
-- **IA y APIs externas**: claves en secrets de Lovable Cloud; llamadas siempre desde server functions, nunca desde el cliente.
-- **Sin pagos reales en MVP**; sin comentarios; sin marketplace; sin estilista humano; sin publicación automática de fotos diarias.
-- **Diseños**: respeto estricto de las 12 pantallas adjuntas (`onboarding`, `registro_login`, `mi_armario`, `detalle_de_prenda`, `a_adir_prenda_escaneo`, `registro_de_outfit`, `historial_de_outfits`, `recomendaciones_ia`, `perfil`, `ajustes`, `plan_premium`, `aura_of_silence`) — no se inventan pantallas fuera del PRD.
+- Todas las mutaciones sociales pasan por `createServerFn` + `requireSupabaseAuth`; lecturas públicas usan el server publishable client con policies `TO anon`.
+- `useInfiniteQuery` con cursor por `published_at` (keyset), no `offset`.
+- Vote optimista: `onMutate` actualiza cache local, `onError` revierte.
+- Imagen pública: al publicar, `supabase.storage.from('wardrobe-images').download()` → `upload()` a `public-outfits/{user_id}/{uuid}.jpg`; guardamos `image_url` público directo.
+- Un solo `head()` con `og:image` por ruta (nunca en `__root`).
 
-## Entregables por fase
-
-Cada fase termina con: pantallas funcionales mostradas en el preview, migraciones SQL aplicadas con GRANTS+RLS, server functions tipadas, y verificación visual contra los diseños. Avanzamos solo cuando confirmes que la fase está OK.
-
-¿Empezamos por la **Fase 0 (fundaciones de diseño + navegación)** o prefieres que arranque directamente con **Fase 1 (Auth + Onboarding)** activando Lovable Cloud?
+¿Arranco por el sub-paso 1 (migración + bucket + tipos) o prefieres que empiece por otro orden?

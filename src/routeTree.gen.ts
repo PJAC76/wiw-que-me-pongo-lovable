@@ -14,12 +14,15 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UUsernameRouteImport } from './routes/u.$username'
+import { Route as OutfitIdRouteImport } from './routes/outfit.$id'
 import { Route as AuthenticatedWardrobeRouteImport } from './routes/_authenticated/wardrobe'
 import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
 import { Route as AuthenticatedFeedRouteImport } from './routes/_authenticated/feed'
+import { Route as AuthenticatedFavoritesRouteImport } from './routes/_authenticated/favorites'
 import { Route as ApiPublicSeedE2eRouteImport } from './routes/api/public/seed-e2e'
 import { Route as ApiPublicEnvcheckRouteImport } from './routes/api/public/envcheck'
 import { Route as AuthenticatedWardrobeAddRouteImport } from './routes/_authenticated/wardrobe.add'
@@ -48,6 +51,16 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UUsernameRoute = UUsernameRouteImport.update({
+  id: '/u/$username',
+  path: '/u/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OutfitIdRoute = OutfitIdRouteImport.update({
+  id: '/outfit/$id',
+  path: '/outfit/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWardrobeRoute = AuthenticatedWardrobeRouteImport.update({
@@ -79,6 +92,11 @@ const AuthenticatedOutfitsRoute = AuthenticatedOutfitsRouteImport.update({
 const AuthenticatedFeedRoute = AuthenticatedFeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFavoritesRoute = AuthenticatedFavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiPublicSeedE2eRoute = ApiPublicSeedE2eRouteImport.update({
@@ -115,12 +133,15 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -132,12 +153,15 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/favorites': typeof AuthenticatedFavoritesRoute
   '/feed': typeof AuthenticatedFeedRoute
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -151,12 +175,15 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/favorites': typeof AuthenticatedFavoritesRoute
   '/_authenticated/feed': typeof AuthenticatedFeedRoute
   '/_authenticated/outfits': typeof AuthenticatedOutfitsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
+  '/outfit/$id': typeof OutfitIdRoute
+  '/u/$username': typeof UUsernameRoute
   '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/_authenticated/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
   '/api/public/envcheck': typeof ApiPublicEnvcheckRoute
@@ -170,12 +197,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/favorites'
     | '/feed'
     | '/outfits'
     | '/profile'
     | '/recommendations'
     | '/stats'
     | '/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
     | '/api/public/envcheck'
@@ -187,12 +217,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/favorites'
     | '/feed'
     | '/outfits'
     | '/profile'
     | '/recommendations'
     | '/stats'
     | '/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
     | '/api/public/envcheck'
@@ -205,12 +238,15 @@ export interface FileRouteTypes {
     | '/auth'
     | '/onboarding'
     | '/reset-password'
+    | '/_authenticated/favorites'
     | '/_authenticated/feed'
     | '/_authenticated/outfits'
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
     | '/_authenticated/stats'
     | '/_authenticated/wardrobe'
+    | '/outfit/$id'
+    | '/u/$username'
     | '/_authenticated/wardrobe/$itemId'
     | '/_authenticated/wardrobe/add'
     | '/api/public/envcheck'
@@ -224,6 +260,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  OutfitIdRoute: typeof OutfitIdRoute
+  UUsernameRoute: typeof UUsernameRoute
   ApiPublicEnvcheckRoute: typeof ApiPublicEnvcheckRoute
   ApiPublicSeedE2eRoute: typeof ApiPublicSeedE2eRoute
 }
@@ -263,6 +301,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/u/$username': {
+      id: '/u/$username'
+      path: '/u/$username'
+      fullPath: '/u/$username'
+      preLoaderRoute: typeof UUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/outfit/$id': {
+      id: '/outfit/$id'
+      path: '/outfit/$id'
+      fullPath: '/outfit/$id'
+      preLoaderRoute: typeof OutfitIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/wardrobe': {
@@ -305,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof AuthenticatedFeedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/favorites': {
+      id: '/_authenticated/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof AuthenticatedFavoritesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/seed-e2e': {
@@ -376,6 +435,7 @@ const AuthenticatedWardrobeRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedFavoritesRoute: typeof AuthenticatedFavoritesRoute
   AuthenticatedFeedRoute: typeof AuthenticatedFeedRoute
   AuthenticatedOutfitsRoute: typeof AuthenticatedOutfitsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
@@ -385,6 +445,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedFavoritesRoute: AuthenticatedFavoritesRoute,
   AuthenticatedFeedRoute: AuthenticatedFeedRoute,
   AuthenticatedOutfitsRoute: AuthenticatedOutfitsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
@@ -402,6 +463,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  OutfitIdRoute: OutfitIdRoute,
+  UUsernameRoute: UUsernameRoute,
   ApiPublicEnvcheckRoute: ApiPublicEnvcheckRoute,
   ApiPublicSeedE2eRoute: ApiPublicSeedE2eRoute,
 }
