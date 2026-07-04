@@ -221,47 +221,11 @@ function OutfitsHistoryScreen() {
             align="start"
             className="w-[92vw] max-w-[420px] p-3"
           >
-            <Input
-              placeholder="Buscar ocasión…"
-              value={occasionQuery}
-              onChange={(e) => setOccasionQuery(e.target.value)}
-              className="mb-3"
+            <OccasionsPicker
+              value={selectedOccasions}
+              onChange={setSelectedOccasions}
+              autoFocus
             />
-            <div className="flex max-h-72 flex-wrap gap-1.5 overflow-y-auto">
-              {filteredOccasions.map((o) => {
-                const active = selectedOccasions.includes(o);
-                return (
-                  <button
-                    key={o}
-                    type="button"
-                    onClick={() =>
-                      setSelectedOccasions((prev) =>
-                        prev.includes(o)
-                          ? prev.filter((x) => x !== o)
-                          : [...prev, o],
-                      )
-                    }
-                    className={
-                      "rounded-full border px-3 py-1 text-xs capitalize transition " +
-                      (active
-                        ? "border-foreground bg-foreground text-background"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground")
-                    }
-                  >
-                    {o}
-                  </button>
-                );
-              })}
-            </div>
-            {selectedOccasions.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setSelectedOccasions([])}
-                className="mt-3 text-xs text-muted-foreground underline"
-              >
-                Quitar todas
-              </button>
-            )}
           </PopoverContent>
         </Popover>
 
