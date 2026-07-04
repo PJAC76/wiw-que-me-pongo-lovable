@@ -433,6 +433,7 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
     mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
     onSuccess: () => {
       const previous = log.occasions;
+      pushRecentOccasions(selected);
       invalidate();
       setOpen(false);
       toast.success("Ocasiones actualizadas", {
