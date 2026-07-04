@@ -24,7 +24,7 @@ Añadir en **Settings → Secrets and variables → Actions** del repo `PJAC76/w
 
 ### 1.2 Mapping secreto → variable de entorno en el workflow
 
-Extraído de `.github/workflows/e2e-wardrobe-ai.yml` (bloque `env:` del job `wardrobe-ai-flow`):
+Extraído de `.github/workflows/e2e-wardrobe-ai.yml` (bloque `env:` del job `wardrobe-ai-flow`) **en Fase 9** (objetivo a recuperar; hoy `SUPABASE_SERVICE_ROLE_KEY` y sus alias no están presentes):
 
 ```yaml
 env:
@@ -37,7 +37,7 @@ env:
   SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}                  # alias server-side
   SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
   SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+  SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}  # re-añadir en Fase 9
 ```
 
 Los alias sin prefijo `VITE_` existen porque el runtime server (server functions + `scripts/ensure-test-user.ts`) lee `process.env.SUPABASE_*`, mientras que Vite sólo expone al navegador las que empiezan por `VITE_`.
