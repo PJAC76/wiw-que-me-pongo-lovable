@@ -62,6 +62,10 @@ jobs:
           python -m pip install --no-cache-dir playwright
           python -m playwright install --with-deps chromium
 
+      - name: Ensure test user (create or update password)
+        run: bun run scripts/ensure-test-user.ts
+
+
       - name: Start dev server
         run: |
           nohup bun run dev > /tmp/vite.log 2>&1 &
