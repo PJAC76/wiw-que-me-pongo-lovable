@@ -312,7 +312,13 @@ function OutfitsHistoryScreen() {
               </div>
               <ul className="space-y-3">
                 {w.logs.map((log) => (
-                  <LogCard key={log.id} log={log} itemsById={itemsById} />
+                  <LogCard
+                    key={log.id}
+                    log={log}
+                    itemsById={itemsById}
+                    published={publishedByLogId.get(log.id) ?? null}
+                  />
+
                 ))}
               </ul>
             </li>
