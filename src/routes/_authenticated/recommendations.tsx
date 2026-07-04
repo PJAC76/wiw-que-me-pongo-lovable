@@ -141,6 +141,20 @@ function OccasionChip({
 }
 
 function SuggestionCard({ suggestion }: { suggestion: OutfitSuggestion }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: () =>
+      markItemsWornNow(
+        suggestion.items.map((i) => ({ id: i.id, times_worn: i.times_worn })),
+      ),
+    onSuccess: () => {
+      toast.success("Marcado como usado hoy");
+      queryClient.invalidateQueries({ queryKey: ["clothing_items", user?.id] });
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo registrar"),
+  });
+
   return (
     <li className="rounded-xl border border-border bg-card p-4 shadow-soft">
       <div className="mb-3 flex items-center gap-2">
@@ -153,9 +167,30 @@ function SuggestionCard({ suggestion }: { suggestion: OutfitSuggestion }) {
         ))}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">{suggestion.rationale}</p>
+      <button
+        type="button"
+        onClick={() => mutation.mutate()}
+        disabled={mutation.isPending || mutation.isSuccess}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-background px-4 py-2 text-xs uppercase tracking-wider text-foreground transition hover:bg-secondary disabled:opacity-60"
+      >
+        {mutation.isPending ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Registrando…
+          </>
+        ) : mutation.isSuccess ? (
+          <>
+            <Check className="h-3.5 w-3.5" /> Registrado hoy
+          </>
+        ) : (
+          <>
+            <Check className="h-3.5 w-3.5" /> Usado hoy
+          </>
+        )}
+      </button>
     </li>
   );
 }
+
 
 function ItemThumb({ item }: { item: ClothingItem }) {
   const src = item.background_removed_image_url ?? item.image_url;
