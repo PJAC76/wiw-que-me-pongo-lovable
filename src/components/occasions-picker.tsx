@@ -343,21 +343,32 @@ function QuickRow({
   );
 }
 
-function Chip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+const Chip = React.forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    active: boolean;
+    onClick: () => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+    role?: string;
+    ariaSelected?: boolean;
+    tabIndex?: number;
+  }
+>(function Chip(
+  { label, active, onClick, onKeyDown, role, ariaSelected, tabIndex },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
+      role={role}
+      aria-selected={ariaSelected}
+      tabIndex={tabIndex}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs capitalize transition",
+        "rounded-full border px-3 py-1 text-xs capitalize transition focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40",
         active
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -366,4 +377,4 @@ function Chip({
       {label}
     </button>
   );
-}
+});
