@@ -46,9 +46,9 @@ Los alias sin prefijo `VITE_` existen porque el runtime server (server functions
 
 | Paso del workflow | Secretos que lee | Motivo |
 |---|---|---|
-| `Guard — required secrets present` | `TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Aborta pronto si falta alguno |
+| `Guard — required secrets present` | `TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | Aborta pronto si falta alguno. **`SUPABASE_SERVICE_ROLE_KEY` no se checkea actualmente**; se re-añadirá en Fase 9 junto al paso `Ensure test user` |
 | `Install JS deps` / `Install Playwright + Chromium` | — | Sólo instalación |
-| `Ensure test user` (`bun run scripts/ensure-test-user.ts`) | `SUPABASE_URL` (alias de `VITE_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY`, `TEST_EMAIL`, `TEST_PASSWORD` | Crea/actualiza el usuario de test vía Admin API |
+| `Ensure test user` | — | **Actualmente deshabilitado.** En Fase 9: re-habilitar `bun run scripts/ensure-test-user.ts` que leerá `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TEST_EMAIL`, `TEST_PASSWORD` |
 | `Start dev server` (`bun run dev`) | `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` (embebidas en el bundle cliente) | Vite necesita las `VITE_*` para inicializar el cliente del navegador |
 | `Run E2E — wardrobe AI flow` (`python tests/e2e/wardrobe-ai-flow.spec.py`) | `TEST_EMAIL`, `TEST_PASSWORD` | Playwright los lee vía `os.environ[...]` para hacer login |
 | `Upload screenshots + vite log on failure` | — | Sólo artefactos |
