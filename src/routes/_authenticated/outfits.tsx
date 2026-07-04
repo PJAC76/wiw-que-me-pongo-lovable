@@ -454,12 +454,32 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
     o.toLowerCase().includes(query.toLowerCase()),
   );
 
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+
+  const revert = useMutation({
+    mutationFn: (previous: string[]) =>
+      updateOutfitLog(log.id, { occasions: previous }),
+    onSuccess: () => {
+      toast.success("Cambios revertidos");
+      invalidate();
+    },
+    onError: (e) =>
+      toast.error((e as Error).message ?? "No se pudo deshacer"),
+  });
+
   const save = useMutation({
     mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
     onSuccess: () => {
-      toast.success("Ocasiones actualizadas");
-      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+      const previous = log.occasions;
+      invalidate();
       setOpen(false);
+      toast.success("Ocasiones actualizadas", {
+        action: {
+          label: "Deshacer",
+          onClick: () => revert.mutate(previous),
+        },
+      });
     },
     onError: (e) =>
       toast.error((e as Error).message ?? "No se pudo actualizar"),
