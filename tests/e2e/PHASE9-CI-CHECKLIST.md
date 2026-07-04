@@ -1,5 +1,7 @@
 # Checklist Fase 9 — Preparar CI E2E antes de re-activar el workflow
 
+> **Estado actual (post-Fase 5, tras el último ajuste):** el workflow `.github/workflows/e2e-wardrobe-ai.yml` sigue desactivado (sólo `workflow_dispatch`) y **ya no ejecuta `scripts/ensure-test-user.ts`**. Se eliminó la dependencia de `SUPABASE_SERVICE_ROLE_KEY` porque la key disponible era rechazada por la Auth Admin API con `401 Invalid API key` a pesar de tener formato `service_role` / JWT correcto. El E2E funciona mientras el usuario `TEST_EMAIL` exista y `TEST_PASSWORD` sea válido, pero **no se auto-provisiona**. En Fase 9 hay que re-añadir el paso de provisión con una `SUPABASE_SERVICE_ROLE_KEY` válida para el proyecto actual (`gjtjejluwrjnntyzrsks`).
+
 > Archivo vinculado a `.github/workflows/e2e-wardrobe-ai.yml` (actualmente desactivado).
 > Tarea: re-activar CI en Fase 9 · migrar a producción.
 
