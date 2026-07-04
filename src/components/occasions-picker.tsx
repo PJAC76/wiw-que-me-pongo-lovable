@@ -117,13 +117,41 @@ export function OccasionsPicker({
     });
   }, [filteredAll]);
 
-  const focusChip = (idx: number) => {
+  // Si el foco ya está dentro del listado, mantiene el chip activo visible
+  // cuando cambia el índice (por teclado o por búsqueda).
+  useEffect(() => {
+    if (filteredAll.length === 0) return;
+    const container = listRef.current;
+    if (!container || typeof document === "undefined") return;
+    if (!container.contains(document.activeElement)) return;
+    scrollChipIntoView(activeIndex);
+  }, [activeIndex, filteredAll]);
+
+  const SCROLL_MARGIN = 8;
+
+  const scrollChipIntoView = (idx: number, setFocus = false) => {
     const el = chipRefs.current[idx];
-    if (el) {
-      el.focus();
-      el.scrollIntoView({ block: "nearest" });
+    const container = listRef.current;
+    if (!el || !container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    const topOverflow = containerRect.top - elRect.top + SCROLL_MARGIN;
+    if (topOverflow > 0) {
+      container.scrollTop -= topOverflow;
+    } else {
+      const bottomOverflow = elRect.bottom - containerRect.bottom + SCROLL_MARGIN;
+      if (bottomOverflow > 0) {
+        container.scrollTop += bottomOverflow;
+      }
     }
+
+    if (setFocus) el.focus();
   };
+
+  const focusChip = (idx: number) => scrollChipIntoView(idx, true);
+
 
   const moveActive = (delta: number) => {
     if (filteredAll.length === 0) return;
