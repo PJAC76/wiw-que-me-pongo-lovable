@@ -9,34 +9,35 @@ Añadir en **Settings → Secrets and variables → Actions** del repo `PJAC76/w
 
 | Secreto | Origen / Valor esperado | Obligatorio |
 |---|---|---|
-| `TEST_EMAIL` | Email del usuario de test en Supabase Auth | Sí |
-| `TEST_PASSWORD` | Contraseña del usuario de test | Sí |
+| `TEST_EMAIL` | Email del usuario de test (será creado/actualizado automáticamente) | Sí |
+| `TEST_PASSWORD` | Contraseña del usuario de test (se fuerza en cada run) | Sí |
 | `VITE_SUPABASE_URL` | Misma URL que en `.env` (`https://…supabase.co`) | Sí |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Misma `anon` / `publishable` key que en `.env` | Sí |
 | `VITE_SUPABASE_PROJECT_ID` | ID del proyecto (ej. `gjtjejluwrjnntyzrsks`) | Sí |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key del backend — usada **solo** por `scripts/ensure-test-user.ts` en CI | Sí |
 
-> **Nota:** `WIW_SERVICE_ROLE_KEY` ya existe como runtime secret en Lovable Cloud. Si el workflow necesitara crear/eliminar el usuario de test automáticamente, se debería añadir también como `SUPABASE_SERVICE_ROLE_KEY` en GitHub Actions (ver paso 3).
+> El service role key no se expone al navegador ni al dev server; sólo lo consume el paso `Ensure test user` antes de arrancar Playwright.
 
-## 2. Crear el usuario de test en Supabase Auth
+## 2. Provisión automática del usuario de test
 
-El workflow espera un usuario existente y confirmado. Opciones:
+El workflow ejecuta `bun run scripts/ensure-test-user.ts` como paso previo a Playwright. El script:
 
-### Opción A — Manual (recomendada si no se quiere exponer service_role en CI)
+1. Busca el usuario por `TEST_EMAIL` vía Admin API (paginado).
+2. Si existe → actualiza su password a `TEST_PASSWORD` y fuerza `email_confirm=true`.
+3. Si no existe → lo crea confirmado, con `user_metadata.purpose = "playwright-e2e"`.
 
-1. Ir a la consola de autenticación del backend (Lovable Cloud → Auth).
-2. Crear un usuario con:
-   - Email: el mismo valor que se usará en `TEST_EMAIL`.
-   - Contraseña: el mismo valor que se usará en `TEST_PASSWORD`.
-   - Confirmar email manualmente.
-3. Asegurar que el usuario tiene un `profile` generado (trigger `handle_new_user` ya lo hace al crear la cuenta).
+Por tanto **no hace falta crear el usuario a mano** una vez configurados los secretos. El trigger `handle_new_user` genera el `profile` y el `wardrobe` por defecto en el primer alta.
 
-### Opción B — Automática vía endpoint `/api/public/seed-e2e`
+Para ejecutarlo en local:
 
-Si se prefiere crear el usuario dinámicamente antes de cada run, se necesita:
+```bash
+export SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... TEST_EMAIL=... TEST_PASSWORD=...
+bun run scripts/ensure-test-user.ts
+```
 
-- Añadir `SUPABASE_SERVICE_ROLE_KEY` a los secretos de GitHub.
-- Hacer una llamada `POST` al endpoint con el token `x-seed-token` correcto.
-- **Riesgo:** el endpoint actual (`src/routes/api/public/seed-e2e.ts`) tiene un token hardcodeado; rotarlo antes de usarlo en CI o eliminar el archivo tras uso.
+> El endpoint legacy `/api/public/seed-e2e` queda obsoleto para CI; considerar eliminarlo o rotar el token hardcodeado antes de publicar.
+
+
 
 ## 3. Aplicar migraciones requeridas en el backend
 
