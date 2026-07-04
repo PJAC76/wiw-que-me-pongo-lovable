@@ -1,11 +1,9 @@
 name: E2E · Wardrobe AI flow
 
-on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-  workflow_dispatch:
+# Desactivado temporalmente (Fase 5): no tenemos los secretos TEST_* en GitHub
+# y el workflow spameaba fallos cada push/PR. Reactivar en Fase 9 como parte
+# de la preparación de CI/CD para producción.
+on: workflow_dispatch
 
 concurrency:
   group: e2e-wardrobe-ai-${{ github.ref }}
