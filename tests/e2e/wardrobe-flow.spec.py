@@ -7,7 +7,8 @@ from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
 BASE = "http://localhost:8080"
-SUPABASE_URL = "https://pcujmfhkyppmcahhgmmb.supabase.co"
+SUPABASE_URL = os.environ.get("SUPABASE_URL") or os.environ["VITE_SUPABASE_URL"]
+APIKEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY") or os.environ["VITE_SUPABASE_PUBLISHABLE_KEY"]
 SCREENS = Path(__file__).parent / "screenshots" / "wardrobe-flow"
 SCREENS.mkdir(parents=True, exist_ok=True)
 
@@ -120,7 +121,7 @@ async def main():
             "return k ? JSON.parse(localStorage.getItem(k)).access_token : null; }"
         )
         assert access_token, "no access token in localStorage"
-        apikey = "sb_publishable_MGPlNp2vWCxd7ObFpi9dMg_LE9udqcQ"
+        apikey = APIKEY
         req = urllib.request.Request(
             f"{SUPABASE_URL}/rest/v1/clothing_items?id=eq.{item_id}&select=storage_path,image_url",
             headers={"apikey": apikey, "Authorization": f"Bearer {access_token}"},
