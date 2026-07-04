@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedWardrobeRouteImport } from './routes/_authenticated/wardrobe'
+import { Route as AuthenticatedStatsRouteImport } from './routes/_authenticated/stats'
 import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedOutfitsRouteImport } from './routes/_authenticated/outfits'
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedWardrobeRoute = AuthenticatedWardrobeRouteImport.update({
   id: '/wardrobe',
   path: '/wardrobe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStatsRoute = AuthenticatedStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRecommendationsRoute =
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/outfits': typeof AuthenticatedOutfitsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/stats': typeof AuthenticatedStatsRoute
   '/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
   '/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/_authenticated/outfits': typeof AuthenticatedOutfitsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
+  '/_authenticated/stats': typeof AuthenticatedStatsRoute
   '/_authenticated/wardrobe': typeof AuthenticatedWardrobeRouteWithChildren
   '/_authenticated/wardrobe/$itemId': typeof AuthenticatedWardrobeItemIdRouteWithChildren
   '/_authenticated/wardrobe/add': typeof AuthenticatedWardrobeAddRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/outfits'
     | '/profile'
     | '/recommendations'
+    | '/stats'
     | '/wardrobe'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/outfits'
     | '/profile'
     | '/recommendations'
+    | '/stats'
     | '/wardrobe'
     | '/wardrobe/$itemId'
     | '/wardrobe/add'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/_authenticated/outfits'
     | '/_authenticated/profile'
     | '/_authenticated/recommendations'
+    | '/_authenticated/stats'
     | '/_authenticated/wardrobe'
     | '/_authenticated/wardrobe/$itemId'
     | '/_authenticated/wardrobe/add'
@@ -258,6 +270,13 @@ declare module '@tanstack/react-router' {
       path: '/wardrobe'
       fullPath: '/wardrobe'
       preLoaderRoute: typeof AuthenticatedWardrobeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/stats': {
+      id: '/_authenticated/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof AuthenticatedStatsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/recommendations': {
@@ -361,6 +380,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOutfitsRoute: typeof AuthenticatedOutfitsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
+  AuthenticatedStatsRoute: typeof AuthenticatedStatsRoute
   AuthenticatedWardrobeRoute: typeof AuthenticatedWardrobeRouteWithChildren
 }
 
@@ -369,6 +389,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOutfitsRoute: AuthenticatedOutfitsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
+  AuthenticatedStatsRoute: AuthenticatedStatsRoute,
   AuthenticatedWardrobeRoute: AuthenticatedWardrobeRouteWithChildren,
 }
 
