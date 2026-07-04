@@ -165,7 +165,7 @@ function OutfitsHistoryScreen() {
           filters={filters}
           disabled={isLoading || (logs?.length ?? 0) === 0}
         />
-        )}
+
       </div>
 
       {/* Rango de fechas manual */}
