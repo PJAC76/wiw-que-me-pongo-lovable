@@ -209,4 +209,21 @@ Notas sobre entornos:
 
 ---
 
-**Contexto:** este workflow fue desactivado durante la Fase 5 porque faltaban los secretos en GitHub y enviaba notificaciones de fallo en cada push/PR. Ver `mem://features/e2e-ci-phase9` para el histórico completo.
+**Contexto:** este workflow fue desactivado durante la Fase 5 porque faltaban los secretos en GitHub y enviaba notificaciones de fallo en cada push/PR. Ver sección 8 para el histórico completo.
+
+## 8. Historial completo del problema `401 Invalid API key`
+
+| Fecha aprox. | Situación | Acción tomada | Resultado |
+|---|---|---|---|
+| Fase 5 | Workflow activo con `push`/`pull_request`; faltaban secretos en GitHub | Desactivar triggers, dejar solo `workflow_dispatch` | Dejan de llegar notificaciones de fallo en cada push |
+| Re-activación reciente | Workflow manual con secretos `TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_*` y `SUPABASE_SERVICE_ROLE_KEY` | Ejecutar `scripts/ensure-test-user.ts` vía `bun run` | `listUsers falló: Invalid API key` |
+| Iteración 2 | Se confirma que `SUPABASE_SERVICE_ROLE_KEY` llega al script | Añadir logging seguro de formato | `listUsers falló: 401 Invalid API key. La key parece service_role por formato, pero Auth la rechaza...` |
+| Iteración 3 | Se sospecha que la key es de otro proyecto, truncada o rotada | Pedir al usuario que la copie de nuevo desde el dashboard del proyecto `gjtjejluwrjnntyzrsks` | Sigue fallando con el mismo `401` |
+| Último ajuste | No se puede confiar en la `SUPABASE_SERVICE_ROLE_KEY` disponible | Eliminar `ensure-test-user.ts` del workflow y quitar `SUPABASE_SERVICE_ROLE_KEY` del `required-secrets` y del `env` | Workflow pasa a Playwright y el E2E funciona si el usuario ya existe |
+
+**Lección aprendida:** no usar `SUPABASE_SERVICE_ROLE_KEY` en CI hasta poder verificar localmente que `supabase.auth.admin.listUsers()` responde `200` con esa key. En Fase 9 se debe obtener/rotar la key correcta antes de re-habilitar el paso de provisión automática.
+
+**Referencias internas:**
+- Script afectado: `scripts/ensure-test-user.ts`
+- Workflow afectado: `.github/workflows/e2e-wardrobe-ai.yml`
+- Backend/project: `gjtjejluwrjnntyzrsks`
