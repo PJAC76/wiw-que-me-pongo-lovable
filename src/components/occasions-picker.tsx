@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { Search, X, Sparkles, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { OCCASIONS, normalizeOccasions } from "@/lib/outfit-logs";
@@ -67,7 +67,10 @@ export function OccasionsPicker({
 }) {
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
+  const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const chipRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
@@ -106,11 +109,79 @@ export function OccasionsPicker({
     [quickRecent],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && filteredAll.length > 0) {
+  // Reajusta el índice activo cuando cambia la lista visible (búsqueda).
+  useEffect(() => {
+    setActiveIndex((i) => {
+      if (filteredAll.length === 0) return 0;
+      return Math.min(i, filteredAll.length - 1);
+    });
+  }, [filteredAll]);
+
+  const focusChip = (idx: number) => {
+    const el = chipRefs.current[idx];
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ block: "nearest" });
+    }
+  };
+
+  const moveActive = (delta: number) => {
+    if (filteredAll.length === 0) return;
+    const next = (activeIndex + delta + filteredAll.length) % filteredAll.length;
+    setActiveIndex(next);
+    focusChip(next);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+      if (filteredAll.length === 0) return;
       e.preventDefault();
-      toggle(filteredAll[0]);
+      setActiveIndex(0);
+      focusChip(0);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+      if (filteredAll.length === 0) return;
+      e.preventDefault();
+      const last = filteredAll.length - 1;
+      setActiveIndex(last);
+      focusChip(last);
+    } else if (e.key === "Enter") {
+      if (filteredAll.length === 0) return;
+      e.preventDefault();
+      toggle(filteredAll[activeIndex] ?? filteredAll[0]);
       setQuery("");
+      inputRef.current?.focus();
+    } else if (e.key === "Escape") {
+      if (query) {
+        e.preventDefault();
+        setQuery("");
+      }
+    }
+  };
+
+  const handleChipKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    idx: number,
+  ) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      moveActive(1);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      moveActive(-1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+      focusChip(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      const last = filteredAll.length - 1;
+      setActiveIndex(last);
+      focusChip(last);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle(filteredAll[idx]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
       inputRef.current?.focus();
     }
   };
@@ -127,7 +198,7 @@ export function OccasionsPicker({
           ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={handleInputKeyDown}
           placeholder="Buscar ocasión…"
           className="pl-8 pr-8"
         />
@@ -198,20 +269,36 @@ export function OccasionsPicker({
             {q ? `${filteredAll.length} resultado${filteredAll.length === 1 ? "" : "s"}` : "Todas"}
           </span>
         </div>
-        <div className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto pr-1">
+        <div
+          ref={listRef}
+          role="listbox"
+          aria-label="Ocasiones disponibles"
+          aria-multiselectable="true"
+          className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto pr-1"
+        >
           {filteredAll.length === 0 ? (
             <p className="w-full py-3 text-center text-xs text-muted-foreground">
               Sin coincidencias.
             </p>
           ) : (
-            filteredAll.map((o) => {
+            filteredAll.map((o, idx) => {
               const active = normalizedValue.includes(o);
               return (
                 <Chip
                   key={o}
+                  ref={(el) => {
+                    chipRefs.current[idx] = el;
+                  }}
                   label={o}
                   active={active}
-                  onClick={() => toggle(o)}
+                  role="option"
+                  ariaSelected={active}
+                  tabIndex={idx === activeIndex ? 0 : -1}
+                  onClick={() => {
+                    setActiveIndex(idx);
+                    toggle(o);
+                  }}
+                  onKeyDown={(e) => handleChipKeyDown(e, idx)}
                 />
               );
             })
@@ -256,21 +343,32 @@ function QuickRow({
   );
 }
 
-function Chip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
+const Chip = forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    active: boolean;
+    onClick: () => void;
+    onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+    role?: string;
+    ariaSelected?: boolean;
+    tabIndex?: number;
+  }
+>(function Chip(
+  { label, active, onClick, onKeyDown, role, ariaSelected, tabIndex },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       type="button"
+      role={role}
+      aria-selected={ariaSelected}
+      tabIndex={tabIndex}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs capitalize transition",
+        "rounded-full border px-3 py-1 text-xs capitalize transition focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40",
         active
           ? "border-foreground bg-foreground text-background"
           : "border-border bg-card text-muted-foreground hover:text-foreground",
@@ -279,4 +377,4 @@ function Chip({
       {label}
     </button>
   );
-}
+});
