@@ -368,10 +368,10 @@ const Chip = forwardRef<
       onClick={onClick}
       onKeyDown={onKeyDown}
       className={cn(
-        "rounded-full border px-3 py-1 text-xs capitalize transition focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40",
+        "rounded-full border px-3 py-1 text-xs capitalize transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         active
-          ? "border-foreground bg-foreground text-background"
-          : "border-border bg-card text-muted-foreground hover:text-foreground",
+          ? "border-foreground bg-foreground text-background focus-visible:ring-background/80 focus-visible:ring-offset-foreground"
+          : "border-border bg-card text-muted-foreground hover:text-foreground focus-visible:ring-foreground/80",
       )}
     >
       {label}
