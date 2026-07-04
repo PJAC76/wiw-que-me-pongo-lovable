@@ -352,22 +352,27 @@ function LogCard({
   return (
     <div className="rounded-xl border border-border bg-card p-4 shadow-soft">
       <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="eyebrow text-[10px]">
             {formatDayLabel(log.worn_on)}
           </div>
-          {log.occasions.length > 0 && (
-            <div className="mt-1.5 flex flex-wrap gap-1">
-              {log.occasions.map((o) => (
+          <div className="mt-1.5 flex flex-wrap items-center gap-1">
+            {log.occasions.length > 0 ? (
+              log.occasions.map((o) => (
                 <span
                   key={o}
                   className="rounded-full bg-secondary px-2 py-0.5 text-[10px] capitalize text-foreground"
                 >
                   {o}
                 </span>
-              ))}
-            </div>
-          )}
+              ))
+            ) : (
+              <span className="text-[10px] italic text-muted-foreground">
+                Sin ocasiones
+              </span>
+            )}
+            <EditOccasionsPopover log={log} />
+          </div>
         </div>
         <button
           type="button"
@@ -395,6 +400,106 @@ function LogCard({
         <p className="mt-3 text-xs text-muted-foreground">{log.note}</p>
       )}
     </div>
+  );
+}
+
+function EditOccasionsPopover({ log }: { log: OutfitLog }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>(log.occasions);
+  const [query, setQuery] = useState("");
+
+  const filtered = OCCASIONS.filter((o) =>
+    o.toLowerCase().includes(query.toLowerCase()),
+  );
+
+  const save = useMutation({
+    mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
+    onSuccess: () => {
+      toast.success("Ocasiones actualizadas");
+      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+      setOpen(false);
+    },
+    onError: (e) =>
+      toast.error((e as Error).message ?? "No se pudo actualizar"),
+  });
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (v) {
+          setSelected(log.occasions);
+          setQuery("");
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[10px] text-muted-foreground transition hover:border-foreground hover:text-foreground"
+          aria-label="Editar ocasiones"
+        >
+          <Pencil className="h-3 w-3" strokeWidth={1.5} />
+          {log.occasions.length === 0 ? "Añadir" : "Editar"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[92vw] max-w-[380px] p-3">
+        <Input
+          placeholder="Buscar ocasión…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="mb-3"
+        />
+        <div className="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto">
+          {filtered.map((o) => {
+            const active = selected.includes(o);
+            return (
+              <button
+                key={o}
+                type="button"
+                onClick={() =>
+                  setSelected((prev) =>
+                    prev.includes(o)
+                      ? prev.filter((x) => x !== o)
+                      : [...prev, o],
+                  )
+                }
+                className={
+                  "rounded-full border px-3 py-1 text-xs capitalize transition " +
+                  (active
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground")
+                }
+              >
+                {o}
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setSelected([])}
+            className="text-xs text-muted-foreground underline disabled:opacity-50"
+            disabled={selected.length === 0}
+          >
+            Quitar todas
+          </button>
+          <button
+            type="button"
+            onClick={() => save.mutate()}
+            disabled={save.isPending}
+            className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs text-background transition hover:bg-foreground/90 disabled:opacity-50"
+          >
+            <Check className="h-3 w-3" strokeWidth={2} />
+            {save.isPending ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
