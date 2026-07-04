@@ -22,6 +22,7 @@ import {
   formatDayLabel,
   groupLogsByWeek,
   listOutfitLogs,
+  logOutfit,
   updateOutfitLog,
   type OutfitLog,
 } from "@/lib/outfit-logs";
