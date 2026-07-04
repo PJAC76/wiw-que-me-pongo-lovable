@@ -414,11 +414,6 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>(log.occasions);
-  const [query, setQuery] = useState("");
-
-  const filtered = OCCASIONS.filter((o) =>
-    o.toLowerCase().includes(query.toLowerCase()),
-  );
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
