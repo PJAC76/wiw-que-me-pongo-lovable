@@ -177,7 +177,7 @@ export function OccasionsPicker({
               label="Recientes"
               icon={<Clock className="h-3 w-3" strokeWidth={1.5} />}
               options={quickRecent}
-              value={value}
+              value={normalizedValue}
               onToggle={toggle}
             />
           )}
@@ -185,7 +185,7 @@ export function OccasionsPicker({
             label="Populares"
             icon={<Sparkles className="h-3 w-3" strokeWidth={1.5} />}
             options={quickPopular}
-            value={value}
+            value={normalizedValue}
             onToggle={toggle}
           />
         </div>
