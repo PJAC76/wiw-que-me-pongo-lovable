@@ -1,18 +1,439 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderScreen } from "@/components/placeholder-screen";
+import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Calendar as CalendarIcon, Shirt, Trash2, X, Filter } from "lucide-react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  OCCASIONS,
+  deleteOutfitLog,
+  formatDayLabel,
+  groupLogsByWeek,
+  listOutfitLogs,
+  type OutfitLog,
+} from "@/lib/outfit-logs";
+import {
+  CATEGORY_LABELS,
+  listClothingItems,
+  type ClothingItem,
+} from "@/lib/wardrobe";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export const Route = createFileRoute("/_authenticated/outfits")({
   head: () => ({
     meta: [
-      { title: "Outfits — WIW" },
-      { name: "description", content: "Tus outfits y registro diario." },
+      { title: "Historial de outfits — WIW" },
+      {
+        name: "description",
+        content:
+          "Qué te pusiste cada semana. Filtra por fecha y por etiquetas de ocasión.",
+      },
     ],
   }),
-  component: () => (
-    <PlaceholderScreen
-      eyebrow="Outfits"
-      title="Tus looks"
-      description="Crea outfits, registra qué te pones cada día y revisa tu historial. Se construye en la Fase 4."
-    />
-  ),
+  component: OutfitsHistoryScreen,
 });
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function daysAgoISO(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+function OutfitsHistoryScreen() {
+  const { user } = useAuth();
+  const [from, setFrom] = useState<string>("");
+  const [to, setTo] = useState<string>("");
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
+  const [occasionQuery, setOccasionQuery] = useState("");
+
+  const filters = useMemo(
+    () => ({
+      from: from || undefined,
+      to: to || undefined,
+      occasions: selectedOccasions.length ? selectedOccasions : undefined,
+    }),
+    [from, to, selectedOccasions],
+  );
+
+  const { data: logs, isLoading } = useQuery({
+    queryKey: ["outfit_logs", user?.id, filters],
+    queryFn: () => listOutfitLogs(user!.id, filters),
+    enabled: !!user,
+  });
+
+  const { data: items } = useQuery({
+    queryKey: ["clothing_items", user?.id],
+    queryFn: () => listClothingItems(user!.id),
+    enabled: !!user,
+  });
+
+  const itemsById = useMemo(() => {
+    const map = new Map<string, ClothingItem>();
+    (items ?? []).forEach((i) => map.set(i.id, i));
+    return map;
+  }, [items]);
+
+  const weeks = useMemo(() => groupLogsByWeek(logs ?? []), [logs]);
+
+  const filteredOccasions = OCCASIONS.filter((o) =>
+    o.toLowerCase().includes(occasionQuery.toLowerCase()),
+  );
+
+  const activeFilters =
+    (from ? 1 : 0) + (to ? 1 : 0) + selectedOccasions.length;
+
+  return (
+    <AppShell eyebrow="Historial" title="¿Qué me puse?">
+      {/* Filtros de fecha rápidos */}
+      <div className="mb-3 flex flex-wrap gap-2">
+        <QuickChip
+          label="Esta semana"
+          onClick={() => {
+            setFrom(daysAgoISO(6));
+            setTo(todayISO());
+          }}
+        />
+        <QuickChip
+          label="Últimos 30 días"
+          onClick={() => {
+            setFrom(daysAgoISO(29));
+            setTo(todayISO());
+          }}
+        />
+        <QuickChip
+          label="Este año"
+          onClick={() => {
+            const y = new Date().getFullYear();
+            setFrom(`${y}-01-01`);
+            setTo(todayISO());
+          }}
+        />
+        {activeFilters > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+              setSelectedOccasions([]);
+            }}
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <X className="h-3 w-3" /> Limpiar ({activeFilters})
+          </button>
+        )}
+      </div>
+
+      {/* Rango de fechas manual */}
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div>
+          <Label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+            Desde
+          </Label>
+          <Input
+            type="date"
+            value={from}
+            max={to || undefined}
+            onChange={(e) => setFrom(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label className="mb-1 block text-[10px] uppercase tracking-wider text-muted-foreground">
+            Hasta
+          </Label>
+          <Input
+            type="date"
+            value={to}
+            min={from || undefined}
+            onChange={(e) => setTo(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Filtro por ocasiones (combinables) */}
+      <div className="mb-6">
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex w-full items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground transition hover:bg-secondary"
+            >
+              <span className="inline-flex items-center gap-2">
+                <Filter className="h-4 w-4" strokeWidth={1.5} />
+                Ocasiones
+                {selectedOccasions.length > 0 && (
+                  <span className="rounded-full bg-foreground px-2 py-0.5 text-[10px] text-background">
+                    {selectedOccasions.length}
+                  </span>
+                )}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {selectedOccasions.length
+                  ? "combinar (AND)"
+                  : "todas"}
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-[92vw] max-w-[420px] p-3"
+          >
+            <Input
+              placeholder="Buscar ocasión…"
+              value={occasionQuery}
+              onChange={(e) => setOccasionQuery(e.target.value)}
+              className="mb-3"
+            />
+            <div className="flex max-h-72 flex-wrap gap-1.5 overflow-y-auto">
+              {filteredOccasions.map((o) => {
+                const active = selectedOccasions.includes(o);
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() =>
+                      setSelectedOccasions((prev) =>
+                        prev.includes(o)
+                          ? prev.filter((x) => x !== o)
+                          : [...prev, o],
+                      )
+                    }
+                    className={
+                      "rounded-full border px-3 py-1 text-xs capitalize transition " +
+                      (active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    {o}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedOccasions.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedOccasions([])}
+                className="mt-3 text-xs text-muted-foreground underline"
+              >
+                Quitar todas
+              </button>
+            )}
+          </PopoverContent>
+        </Popover>
+
+        {selectedOccasions.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {selectedOccasions.map((o) => (
+              <span
+                key={o}
+                className="inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] capitalize text-foreground"
+              >
+                {o}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSelectedOccasions((prev) => prev.filter((x) => x !== o))
+                  }
+                  aria-label={`Quitar ${o}`}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Contenido */}
+      {isLoading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
+          ))}
+        </div>
+      ) : weeks.length === 0 ? (
+        <EmptyHistory hasFilters={activeFilters > 0} />
+      ) : (
+        <ul className="space-y-8">
+          {weeks.map((w) => (
+            <li key={w.key}>
+              <div className="mb-3 flex items-center gap-2">
+                <CalendarIcon
+                  className="h-4 w-4 text-muted-foreground"
+                  strokeWidth={1.5}
+                />
+                <h2 className="font-display text-lg leading-none">
+                  {w.label}
+                </h2>
+                <span className="ml-auto text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {w.logs.length}{" "}
+                  {w.logs.length === 1 ? "outfit" : "outfits"}
+                </span>
+              </div>
+              <ul className="space-y-3">
+                {w.logs.map((log) => (
+                  <LogCard key={log.id} log={log} itemsById={itemsById} />
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </AppShell>
+  );
+}
+
+function QuickChip({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+    >
+      {label}
+    </button>
+  );
+}
+
+function LogCard({
+  log,
+  itemsById,
+}: {
+  log: OutfitLog;
+  itemsById: Map<string, ClothingItem>;
+}) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const del = useMutation({
+    mutationFn: () => deleteOutfitLog(log.id),
+    onSuccess: () => {
+      toast.success("Registro eliminado");
+      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo eliminar"),
+  });
+
+  const items = log.item_ids
+    .map((id) => itemsById.get(id))
+    .filter((x): x is ClothingItem => !!x);
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 shadow-soft">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <div className="eyebrow text-[10px]">
+            {formatDayLabel(log.worn_on)}
+          </div>
+          {log.occasions.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {log.occasions.map((o) => (
+                <span
+                  key={o}
+                  className="rounded-full bg-secondary px-2 py-0.5 text-[10px] capitalize text-foreground"
+                >
+                  {o}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("¿Eliminar este registro?")) del.mutate();
+          }}
+          className="text-muted-foreground transition hover:text-destructive"
+          aria-label="Eliminar registro"
+        >
+          <Trash2 className="h-4 w-4" strokeWidth={1.5} />
+        </button>
+      </div>
+      {items.length > 0 ? (
+        <div className="grid grid-cols-4 gap-2">
+          {items.map((it) => (
+            <ItemThumb key={it.id} item={it} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          Las prendas de este outfit ya no están en tu armario.
+        </p>
+      )}
+      {log.note && (
+        <p className="mt-3 text-xs text-muted-foreground">{log.note}</p>
+      )}
+    </div>
+  );
+}
+
+function ItemThumb({ item }: { item: ClothingItem }) {
+  const src = item.background_removed_image_url ?? item.image_url;
+  return (
+    <Link
+      to="/wardrobe/$itemId"
+      params={{ itemId: item.id }}
+      className="flex flex-col overflow-hidden rounded-lg border border-border bg-muted transition hover:shadow-soft"
+    >
+      <div className="relative aspect-square w-full bg-muted">
+        {src ? (
+          <img
+            src={src}
+            alt={item.name ?? CATEGORY_LABELS[item.category]}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <Shirt className="h-5 w-5" strokeWidth={1.25} />
+          </div>
+        )}
+      </div>
+      <div className="px-1.5 py-1">
+        <div className="truncate text-[10px] text-muted-foreground">
+          {CATEGORY_LABELS[item.category]}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function EmptyHistory({ hasFilters }: { hasFilters: boolean }) {
+  return (
+    <div className="mt-10 flex flex-col items-center text-center">
+      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary">
+        <CalendarIcon
+          className="h-8 w-8 text-muted-foreground"
+          strokeWidth={1.25}
+        />
+      </div>
+      <h2 className="mt-6 font-display text-2xl">
+        {hasFilters ? "Sin coincidencias" : "Aún no hay registros"}
+      </h2>
+      <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+        {hasFilters
+          ? "Prueba a ampliar el rango de fechas o quitar alguna ocasión."
+          : "Cuando marques un outfit como usado, aparecerá aquí ordenado por semana."}
+      </p>
+      {!hasFilters && (
+        <Link
+          to="/recommendations"
+          className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm text-primary-foreground shadow-soft transition hover:bg-primary/90"
+        >
+          Ver sugerencias
+        </Link>
+      )}
+    </div>
+  );
+}
