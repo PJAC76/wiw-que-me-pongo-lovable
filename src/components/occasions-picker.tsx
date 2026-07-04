@@ -67,7 +67,10 @@ export function OccasionsPicker({
 }) {
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>(() => loadRecent());
+  const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const chipRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
@@ -106,11 +109,79 @@ export function OccasionsPicker({
     [quickRecent],
   );
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && filteredAll.length > 0) {
+  // Reajusta el índice activo cuando cambia la lista visible (búsqueda).
+  useEffect(() => {
+    setActiveIndex((i) => {
+      if (filteredAll.length === 0) return 0;
+      return Math.min(i, filteredAll.length - 1);
+    });
+  }, [filteredAll]);
+
+  const focusChip = (idx: number) => {
+    const el = chipRefs.current[idx];
+    if (el) {
+      el.focus();
+      el.scrollIntoView({ block: "nearest" });
+    }
+  };
+
+  const moveActive = (delta: number) => {
+    if (filteredAll.length === 0) return;
+    const next = (activeIndex + delta + filteredAll.length) % filteredAll.length;
+    setActiveIndex(next);
+    focusChip(next);
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+      if (filteredAll.length === 0) return;
       e.preventDefault();
-      toggle(filteredAll[0]);
+      setActiveIndex(0);
+      focusChip(0);
+    } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+      if (filteredAll.length === 0) return;
+      e.preventDefault();
+      const last = filteredAll.length - 1;
+      setActiveIndex(last);
+      focusChip(last);
+    } else if (e.key === "Enter") {
+      if (filteredAll.length === 0) return;
+      e.preventDefault();
+      toggle(filteredAll[activeIndex] ?? filteredAll[0]);
       setQuery("");
+      inputRef.current?.focus();
+    } else if (e.key === "Escape") {
+      if (query) {
+        e.preventDefault();
+        setQuery("");
+      }
+    }
+  };
+
+  const handleChipKeyDown = (
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    idx: number,
+  ) => {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      moveActive(1);
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      moveActive(-1);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+      focusChip(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      const last = filteredAll.length - 1;
+      setActiveIndex(last);
+      focusChip(last);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle(filteredAll[idx]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
       inputRef.current?.focus();
     }
   };
