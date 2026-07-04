@@ -102,9 +102,8 @@ function OutfitsHistoryScreen() {
 
   const weeks = useMemo(() => groupLogsByWeek(logs ?? []), [logs]);
 
-  const filteredOccasions = OCCASIONS.filter((o) =>
-    o.toLowerCase().includes(occasionQuery.toLowerCase()),
-  );
+
+
 
   const activeFilters =
     (from ? 1 : 0) + (to ? 1 : 0) + selectedOccasions.length;
