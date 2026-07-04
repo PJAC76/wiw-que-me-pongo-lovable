@@ -197,7 +197,9 @@ Notas sobre entornos:
 
 ## 7. Validación final antes de merge
 
-- [ ] Los **6** secretos de GitHub Actions están configurados (§1.1).
+- [ ] Los **5** secretos de GitHub Actions necesarios hoy están configurados (`TEST_EMAIL`, `TEST_PASSWORD`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`).
+- [ ] En Fase 9: configurar también `SUPABASE_SERVICE_ROLE_KEY` y verificar que es JWT de 3 partes y del proyecto `gjtjejluwrjnntyzrsks` (§2.1).
+- [ ] En Fase 9: re-añadir el paso `Ensure test user` al workflow y confirmar que `listUsers` no devuelve `401 Invalid API key`.
 - [ ] El usuario de test existe, está confirmado y tiene `profile` + `wardrobe` por defecto.
 - [ ] Las migraciones requeridas están aplicadas en el backend de producción/preview.
 - [ ] El workflow se ejecuta manualmente (`workflow_dispatch`) una vez sin errores (ver §5.1).
