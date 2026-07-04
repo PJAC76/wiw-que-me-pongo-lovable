@@ -22,6 +22,7 @@ import {
   formatDayLabel,
   groupLogsByWeek,
   listOutfitLogs,
+  logOutfit,
   updateOutfitLog,
   type OutfitLog,
 } from "@/lib/outfit-logs";
@@ -350,11 +351,37 @@ function LogCard({
 }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+
+  const restore = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Sesión no disponible");
+      return logOutfit({
+        user_id: user.id,
+        worn_on: log.worn_on,
+        occasions: log.occasions,
+        item_ids: log.item_ids,
+        note: log.note,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Registro restaurado");
+      invalidate();
+    },
+    onError: (e) => toast.error((e as Error).message ?? "No se pudo restaurar"),
+  });
+
   const del = useMutation({
     mutationFn: () => deleteOutfitLog(log.id),
     onSuccess: () => {
-      toast.success("Registro eliminado");
-      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+      invalidate();
+      toast.success("Registro eliminado", {
+        action: {
+          label: "Deshacer",
+          onClick: () => restore.mutate(),
+        },
+      });
     },
     onError: (e) => toast.error((e as Error).message ?? "No se pudo eliminar"),
   });
@@ -390,10 +417,9 @@ function LogCard({
         </div>
         <button
           type="button"
-          onClick={() => {
-            if (confirm("¿Eliminar este registro?")) del.mutate();
-          }}
-          className="text-muted-foreground transition hover:text-destructive"
+          onClick={() => del.mutate()}
+          disabled={del.isPending}
+          className="text-muted-foreground transition hover:text-destructive disabled:opacity-50"
           aria-label="Eliminar registro"
         >
           <Trash2 className="h-4 w-4" strokeWidth={1.5} />
@@ -428,12 +454,32 @@ function EditOccasionsPopover({ log }: { log: OutfitLog }) {
     o.toLowerCase().includes(query.toLowerCase()),
   );
 
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+
+  const revert = useMutation({
+    mutationFn: (previous: string[]) =>
+      updateOutfitLog(log.id, { occasions: previous }),
+    onSuccess: () => {
+      toast.success("Cambios revertidos");
+      invalidate();
+    },
+    onError: (e) =>
+      toast.error((e as Error).message ?? "No se pudo deshacer"),
+  });
+
   const save = useMutation({
     mutationFn: () => updateOutfitLog(log.id, { occasions: selected }),
     onSuccess: () => {
-      toast.success("Ocasiones actualizadas");
-      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
+      const previous = log.occasions;
+      invalidate();
       setOpen(false);
+      toast.success("Ocasiones actualizadas", {
+        action: {
+          label: "Deshacer",
+          onClick: () => revert.mutate(previous),
+        },
+      });
     },
     onError: (e) =>
       toast.error((e as Error).message ?? "No se pudo actualizar"),
