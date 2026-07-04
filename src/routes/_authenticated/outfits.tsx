@@ -94,7 +94,18 @@ function OutfitsHistoryScreen() {
     (from ? 1 : 0) + (to ? 1 : 0) + selectedOccasions.length;
 
   return (
-    <AppShell eyebrow="Historial" title="¿Qué me puse?">
+    <AppShell
+      eyebrow="Historial"
+      title="¿Qué me puse?"
+      rightSlot={
+        <Link
+          to="/stats"
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+        >
+          Estadísticas
+        </Link>
+      }
+    >
       {/* Filtros de fecha rápidos */}
       <div className="mb-3 flex flex-wrap gap-2">
         <QuickChip
