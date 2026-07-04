@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Sparkles, RefreshCw, Shirt, Check, Loader2 } from "lucide-react";
+import { Sparkles, RefreshCw, Shirt, Check, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,9 +16,26 @@ import {
   currentSeason,
   type OutfitSuggestion,
 } from "@/lib/outfit-suggestions";
+import { OCCASIONS as ALL_OCCASIONS, logOutfit } from "@/lib/outfit-logs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 
 
-const OCCASIONS = ["casual", "trabajo", "formal", "deporte", "fiesta"] as const;
+const FILTER_OCCASIONS = [
+  "casual",
+  "trabajo",
+  "formal",
+  "deporte",
+  "fiesta",
+  "boda",
+  "evento",
+  "cena",
+  "comida",
+] as const;
 
 export const Route = createFileRoute("/_authenticated/recommendations")({
   head: () => ({
@@ -84,7 +101,7 @@ function RecommendationsScreen() {
           active={occasion === null}
           onClick={() => setOccasion(null)}
         />
-        {OCCASIONS.map((o) => (
+        {FILTER_OCCASIONS.map((o) => (
           <OccasionChip
             key={o}
             label={o}
@@ -143,17 +160,31 @@ function OccasionChip({
 function SuggestionCard({ suggestion }: { suggestion: OutfitSuggestion }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [selectedOccasions, setSelectedOccasions] = useState<string[]>([]);
+  const [occasionQuery, setOccasionQuery] = useState("");
+
   const mutation = useMutation({
-    mutationFn: () =>
-      markItemsWornNow(
+    mutationFn: async () => {
+      await markItemsWornNow(
         suggestion.items.map((i) => ({ id: i.id, times_worn: i.times_worn })),
-      ),
+      );
+      await logOutfit({
+        user_id: user!.id,
+        item_ids: suggestion.items.map((i) => i.id),
+        occasions: selectedOccasions,
+      });
+    },
     onSuccess: () => {
-      toast.success("Marcado como usado hoy");
+      toast.success("Añadido a tu historial");
       queryClient.invalidateQueries({ queryKey: ["clothing_items", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["outfit_logs", user?.id] });
     },
     onError: (e) => toast.error((e as Error).message ?? "No se pudo registrar"),
   });
+
+  const filteredOccasions = ALL_OCCASIONS.filter((o) =>
+    o.toLowerCase().includes(occasionQuery.toLowerCase()),
+  );
 
   return (
     <li className="rounded-xl border border-border bg-card p-4 shadow-soft">
@@ -167,6 +198,64 @@ function SuggestionCard({ suggestion }: { suggestion: OutfitSuggestion }) {
         ))}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">{suggestion.rationale}</p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {selectedOccasions.map((o) => (
+          <span
+            key={o}
+            className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] capitalize text-foreground"
+          >
+            {o}
+          </span>
+        ))}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-0.5 text-[11px] text-muted-foreground transition hover:text-foreground"
+              disabled={mutation.isPending || mutation.isSuccess}
+            >
+              <Plus className="h-3 w-3" />
+              {selectedOccasions.length ? "Añadir" : "Añadir ocasión"}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-[92vw] max-w-[380px] p-3">
+            <Input
+              placeholder="Buscar ocasión…"
+              value={occasionQuery}
+              onChange={(e) => setOccasionQuery(e.target.value)}
+              className="mb-3"
+            />
+            <div className="flex max-h-64 flex-wrap gap-1.5 overflow-y-auto">
+              {filteredOccasions.map((o) => {
+                const active = selectedOccasions.includes(o);
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() =>
+                      setSelectedOccasions((prev) =>
+                        prev.includes(o)
+                          ? prev.filter((x) => x !== o)
+                          : [...prev, o],
+                      )
+                    }
+                    className={
+                      "rounded-full border px-3 py-1 text-xs capitalize transition " +
+                      (active
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    {o}
+                  </button>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
       <button
         type="button"
         onClick={() => mutation.mutate()}
