@@ -14,16 +14,243 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      app_settings: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
+      clothing_items: {
+        Row: {
+          background_processed_at: string | null
+          background_removed_image_url: string | null
+          background_removed_storage_path: string | null
+          brand: string | null
+          category: Database["public"]["Enums"]["clothing_category"]
+          color: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          image_url: string | null
+          last_worn_at: string | null
+          material: string | null
+          name: string | null
+          notes: string | null
+          occasions: string[]
+          price_cents: number | null
+          purchase_date: string | null
+          seasons: Database["public"]["Enums"]["clothing_season"][]
+          secondary_color: string | null
+          similarity_hash: string | null
+          size: string | null
+          storage_path: string | null
+          subcategory: string | null
+          tags: string[]
+          times_worn: number
+          updated_at: string
+          user_id: string
+          visibility: Database["public"]["Enums"]["clothing_visibility"]
+          wardrobe_id: string
+        }
+        Insert: {
+          background_processed_at?: string | null
+          background_removed_image_url?: string | null
+          background_removed_storage_path?: string | null
+          brand?: string | null
+          category: Database["public"]["Enums"]["clothing_category"]
+          color?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          last_worn_at?: string | null
+          material?: string | null
+          name?: string | null
+          notes?: string | null
+          occasions?: string[]
+          price_cents?: number | null
+          purchase_date?: string | null
+          seasons?: Database["public"]["Enums"]["clothing_season"][]
+          secondary_color?: string | null
+          similarity_hash?: string | null
+          size?: string | null
+          storage_path?: string | null
+          subcategory?: string | null
+          tags?: string[]
+          times_worn?: number
+          updated_at?: string
+          user_id: string
+          visibility?: Database["public"]["Enums"]["clothing_visibility"]
+          wardrobe_id: string
+        }
+        Update: {
+          background_processed_at?: string | null
+          background_removed_image_url?: string | null
+          background_removed_storage_path?: string | null
+          brand?: string | null
+          category?: Database["public"]["Enums"]["clothing_category"]
+          color?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          image_url?: string | null
+          last_worn_at?: string | null
+          material?: string | null
+          name?: string | null
+          notes?: string | null
+          occasions?: string[]
+          price_cents?: number | null
+          purchase_date?: string | null
+          seasons?: Database["public"]["Enums"]["clothing_season"][]
+          secondary_color?: string | null
+          similarity_hash?: string | null
+          size?: string | null
+          storage_path?: string | null
+          subcategory?: string | null
+          tags?: string[]
+          times_worn?: number
+          updated_at?: string
+          user_id?: string
+          visibility?: Database["public"]["Enums"]["clothing_visibility"]
+          wardrobe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clothing_items_wardrobe_id_fkey"
+            columns: ["wardrobe_id"]
+            isOneToOne: false
+            referencedRelation: "wardrobes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outfit_logs: {
+        Row: {
+          created_at: string
+          id: string
+          item_ids: string[]
+          note: string | null
+          occasions: string[]
+          updated_at: string
+          user_id: string
+          worn_on: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_ids?: string[]
+          note?: string | null
+          occasions?: string[]
+          updated_at?: string
+          user_id: string
+          worn_on?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_ids?: string[]
+          note?: string | null
+          occasions?: string[]
+          updated_at?: string
+          user_id?: string
+          worn_on?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wardrobes: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      clothing_category:
+        | "tops"
+        | "bottoms"
+        | "dresses"
+        | "outerwear"
+        | "shoes"
+        | "accessories"
+        | "bags"
+        | "underwear"
+        | "sportswear"
+        | "other"
+      clothing_season: "spring" | "summer" | "fall" | "winter" | "all"
+      clothing_visibility: "private" | "friends" | "public"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +377,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      clothing_category: [
+        "tops",
+        "bottoms",
+        "dresses",
+        "outerwear",
+        "shoes",
+        "accessories",
+        "bags",
+        "underwear",
+        "sportswear",
+        "other",
+      ],
+      clothing_season: ["spring", "summer", "fall", "winter", "all"],
+      clothing_visibility: ["private", "friends", "public"],
+    },
   },
 } as const
