@@ -27,6 +27,7 @@ import {
   type ClothingCategory,
   type ClothingSeason,
 } from "@/lib/wardrobe";
+import { z } from "zod";
 
 const KNOWN_CATEGORIES = Object.keys(CATEGORY_LABELS) as ClothingCategory[];
 const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
@@ -34,6 +35,62 @@ const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+const optionalTrimmed = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, { message: `${label} no puede superar ${max} caracteres` })
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : undefined));
+
+const formSchema = z
+  .object({
+    name: optionalTrimmed(100, "El nombre"),
+    category: z.enum(KNOWN_CATEGORIES as [ClothingCategory, ...ClothingCategory[]], {
+      message: "Selecciona una categoría",
+    }),
+    subcategory: optionalTrimmed(60, "La subcategoría"),
+    color: optionalTrimmed(40, "El color"),
+    secondaryColor: optionalTrimmed(80, "El color secundario"),
+    brand: optionalTrimmed(60, "La marca"),
+    size: optionalTrimmed(20, "La talla"),
+    material: optionalTrimmed(60, "El material"),
+    season: z.enum(KNOWN_SEASONS as [ClothingSeason, ...ClothingSeason[]], {
+      message: "Selecciona una temporada",
+    }),
+    occasions: z
+      .array(z.string().trim().min(1).max(40))
+      .max(10, { message: "Como máximo 10 ocasiones" }),
+    notes: z
+      .string()
+      .trim()
+      .max(500, { message: "Las notas no pueden superar 500 caracteres" })
+      .optional()
+      .transform((v) => (v && v.length > 0 ? v : undefined)),
+    hasImage: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.hasImage && !data.name && !data.brand) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["name"],
+        message: "Añade una foto o al menos un nombre o marca",
+      });
+    }
+    if (data.secondaryColor && !data.color) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["color"],
+        message: "Indica el color principal si añades uno secundario",
+      });
+    }
+  });
+
+type FieldErrors = Partial<Record<
+  "name" | "category" | "subcategory" | "color" | "secondaryColor" | "brand" | "size" | "material" | "season" | "occasions" | "notes",
+  string
+>>;
 
 type SubmitErrorKind = "validation" | "network" | "storage" | "database" | "unknown";
 
@@ -191,6 +248,7 @@ function AddItemPage() {
     occasions: string[];
     fields: string[];
   } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const aiDetection = useAiDetection();
 
@@ -304,6 +362,36 @@ function AddItemPage() {
     queryFn: () => getDefaultWardrobe(user!.id),
     enabled: !!user,
   });
+
+  function validateForm(): boolean {
+    const result = formSchema.safeParse({
+      name,
+      category,
+      subcategory,
+      color,
+      secondaryColor,
+      brand,
+      size,
+      material,
+      season,
+      occasions,
+      notes,
+      hasImage: !!file,
+    });
+    if (result.success) {
+      setFieldErrors({});
+      return true;
+    }
+    const errs: FieldErrors = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof FieldErrors | undefined;
+      if (key && !errs[key]) errs[key] = issue.message;
+    }
+    setFieldErrors(errs);
+    const first = result.error.issues[0]?.message ?? "Revisa los campos marcados";
+    toast.error("Formulario incompleto", { description: first });
+    return false;
+  }
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -441,6 +529,7 @@ function AddItemPage() {
         className="flex-1 space-y-5 px-6 pb-32"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!validateForm()) return;
           mutation.mutate();
         }}
       >
@@ -568,12 +657,16 @@ function AddItemPage() {
           <Input
             id="name"
             value={name}
+            aria-invalid={fieldErrors.name ? true : undefined}
+            maxLength={100}
             onChange={(e) => {
               setName(e.target.value);
               unmarkAi("name");
+              if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined }));
             }}
             placeholder="Camisa lino blanca"
           />
+          <FieldError message={fieldErrors.name} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -584,9 +677,10 @@ function AddItemPage() {
               onValueChange={(v) => {
                 setCategory(v as ClothingCategory);
                 unmarkAi("category");
+                if (fieldErrors.category) setFieldErrors((p) => ({ ...p, category: undefined }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-invalid={fieldErrors.category ? true : undefined}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -597,6 +691,7 @@ function AddItemPage() {
                 ))}
               </SelectContent>
             </Select>
+            <FieldError message={fieldErrors.category} />
           </div>
           <div className="space-y-2">
             <FieldLabel htmlFor="subcategory" fromAi={aiFields.has("subcategory")}>
@@ -605,12 +700,16 @@ function AddItemPage() {
             <Input
               id="subcategory"
               value={subcategory}
+              maxLength={60}
+              aria-invalid={fieldErrors.subcategory ? true : undefined}
               onChange={(e) => {
                 setSubcategory(e.target.value);
                 unmarkAi("subcategory");
+                if (fieldErrors.subcategory) setFieldErrors((p) => ({ ...p, subcategory: undefined }));
               }}
               placeholder="Camisa, vaquero…"
             />
+            <FieldError message={fieldErrors.subcategory} />
           </div>
         </div>
 
@@ -620,11 +719,15 @@ function AddItemPage() {
             <Input
               id="color"
               value={color}
+              maxLength={40}
+              aria-invalid={fieldErrors.color ? true : undefined}
               onChange={(e) => {
                 setColor(e.target.value);
                 unmarkAi("color");
+                if (fieldErrors.color) setFieldErrors((p) => ({ ...p, color: undefined }));
               }}
             />
+            <FieldError message={fieldErrors.color} />
           </div>
           <div className="space-y-2">
             <FieldLabel
@@ -636,12 +739,16 @@ function AddItemPage() {
             <Input
               id="secondaryColor"
               value={secondaryColor}
+              maxLength={80}
+              aria-invalid={fieldErrors.secondaryColor ? true : undefined}
               onChange={(e) => {
                 setSecondaryColor(e.target.value);
                 unmarkAi("secondaryColor");
+                if (fieldErrors.secondaryColor) setFieldErrors((p) => ({ ...p, secondaryColor: undefined }));
               }}
               placeholder="Opcional"
             />
+            <FieldError message={fieldErrors.secondaryColor} />
           </div>
         </div>
 
@@ -651,11 +758,16 @@ function AddItemPage() {
             <Input
               id="brand"
               value={brand}
+              maxLength={60}
+              aria-invalid={fieldErrors.brand ? true : undefined}
               onChange={(e) => {
                 setBrand(e.target.value);
                 unmarkAi("brand");
+                if (fieldErrors.brand) setFieldErrors((p) => ({ ...p, brand: undefined }));
+                if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined }));
               }}
             />
+            <FieldError message={fieldErrors.brand} />
           </div>
           <div className="space-y-2">
             <FieldLabel htmlFor="material" fromAi={aiFields.has("material")}>
@@ -664,19 +776,33 @@ function AddItemPage() {
             <Input
               id="material"
               value={material}
+              maxLength={60}
+              aria-invalid={fieldErrors.material ? true : undefined}
               onChange={(e) => {
                 setMaterial(e.target.value);
                 unmarkAi("material");
+                if (fieldErrors.material) setFieldErrors((p) => ({ ...p, material: undefined }));
               }}
               placeholder="Algodón, lino…"
             />
+            <FieldError message={fieldErrors.material} />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="size">Talla</Label>
-            <Input id="size" value={size} onChange={(e) => setSize(e.target.value)} />
+            <Input
+              id="size"
+              value={size}
+              maxLength={20}
+              aria-invalid={fieldErrors.size ? true : undefined}
+              onChange={(e) => {
+                setSize(e.target.value);
+                if (fieldErrors.size) setFieldErrors((p) => ({ ...p, size: undefined }));
+              }}
+            />
+            <FieldError message={fieldErrors.size} />
           </div>
           <div className="space-y-2">
             <FieldLabel fromAi={aiFields.has("season")}>Temporada</FieldLabel>
@@ -685,9 +811,10 @@ function AddItemPage() {
               onValueChange={(v) => {
                 setSeason(v as ClothingSeason);
                 unmarkAi("season");
+                if (fieldErrors.season) setFieldErrors((p) => ({ ...p, season: undefined }));
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger aria-invalid={fieldErrors.season ? true : undefined}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -698,6 +825,7 @@ function AddItemPage() {
                 ))}
               </SelectContent>
             </Select>
+            <FieldError message={fieldErrors.season} />
           </div>
         </div>
 
@@ -708,8 +836,10 @@ function AddItemPage() {
             onChange={(next) => {
               setOccasions(next);
               unmarkAi("occasions");
+              if (fieldErrors.occasions) setFieldErrors((p) => ({ ...p, occasions: undefined }));
             }}
           />
+          <FieldError message={fieldErrors.occasions} />
         </div>
 
         <div className="space-y-2">
@@ -717,10 +847,18 @@ function AddItemPage() {
           <Textarea
             id="notes"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
             rows={3}
+            maxLength={500}
+            aria-invalid={fieldErrors.notes ? true : undefined}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              if (fieldErrors.notes) setFieldErrors((p) => ({ ...p, notes: undefined }));
+            }}
           />
+          <FieldError message={fieldErrors.notes} />
         </div>
+
+
 
 
         {submitError && (
@@ -817,5 +955,15 @@ function FieldLabel({
         </span>
       )}
     </div>
+  );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="h-3 w-3" />
+      {message}
+    </p>
   );
 }
