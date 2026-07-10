@@ -742,3 +742,24 @@ function ErrorIcon({ kind }: { kind: SubmitErrorKind }) {
   if (kind === "database") return <Database className={cls} />;
   return <AlertCircle className={cls} />;
 }
+
+function FieldLabel({
+  htmlFor,
+  fromAi,
+  children,
+}: {
+  htmlFor?: string;
+  fromAi?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label htmlFor={htmlFor}>{children}</Label>
+      {fromAi && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-primary">
+          <Sparkles className="h-2.5 w-2.5" strokeWidth={1.75} /> IA
+        </span>
+      )}
+    </div>
+  );
+}
