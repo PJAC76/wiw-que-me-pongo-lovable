@@ -493,40 +493,126 @@ function AddItemPage() {
 
 
 
+        {aiFields.size > 0 && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span className="font-medium">Detección IA aplicada.</span>{" "}
+            <span className="text-muted-foreground">
+              Los campos marcados con
+              <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                <Sparkles className="h-2.5 w-2.5" /> IA
+              </span>
+              se rellenaron automáticamente. Puedes editarlos antes de guardar.
+            </span>
+          </div>
+        )}
+
         <div className="space-y-2">
-          <Label htmlFor="name">Nombre</Label>
+          <FieldLabel htmlFor="name" fromAi={aiFields.has("name")}>Nombre</FieldLabel>
           <Input
             id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              unmarkAi("name");
+            }}
             placeholder="Camisa lino blanca"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Categoría</Label>
-          <Select value={category} onValueChange={(v) => setCategory(v as ClothingCategory)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
-                <SelectItem key={k} value={k}>
-                  {CATEGORY_LABELS[k]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <FieldLabel fromAi={aiFields.has("category")}>Categoría</FieldLabel>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setCategory(v as ClothingCategory);
+                unmarkAi("category");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {CATEGORY_LABELS[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <FieldLabel htmlFor="subcategory" fromAi={aiFields.has("subcategory")}>
+              Subcategoría
+            </FieldLabel>
+            <Input
+              id="subcategory"
+              value={subcategory}
+              onChange={(e) => {
+                setSubcategory(e.target.value);
+                unmarkAi("subcategory");
+              }}
+              placeholder="Camisa, vaquero…"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            <FieldLabel htmlFor="color" fromAi={aiFields.has("color")}>Color</FieldLabel>
+            <Input
+              id="color"
+              value={color}
+              onChange={(e) => {
+                setColor(e.target.value);
+                unmarkAi("color");
+              }}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="brand">Marca</Label>
-            <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
+            <FieldLabel
+              htmlFor="secondaryColor"
+              fromAi={aiFields.has("secondaryColor")}
+            >
+              Color secundario
+            </FieldLabel>
+            <Input
+              id="secondaryColor"
+              value={secondaryColor}
+              onChange={(e) => {
+                setSecondaryColor(e.target.value);
+                unmarkAi("secondaryColor");
+              }}
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <FieldLabel htmlFor="brand" fromAi={aiFields.has("brand")}>Marca</FieldLabel>
+            <Input
+              id="brand"
+              value={brand}
+              onChange={(e) => {
+                setBrand(e.target.value);
+                unmarkAi("brand");
+              }}
+            />
+          </div>
+          <div className="space-y-2">
+            <FieldLabel htmlFor="material" fromAi={aiFields.has("material")}>
+              Material
+            </FieldLabel>
+            <Input
+              id="material"
+              value={material}
+              onChange={(e) => {
+                setMaterial(e.target.value);
+                unmarkAi("material");
+              }}
+              placeholder="Algodón, lino…"
+            />
           </div>
         </div>
 
@@ -536,8 +622,14 @@ function AddItemPage() {
             <Input id="size" value={size} onChange={(e) => setSize(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Temporada</Label>
-            <Select value={season} onValueChange={(v) => setSeason(v as ClothingSeason)}>
+            <FieldLabel fromAi={aiFields.has("season")}>Temporada</FieldLabel>
+            <Select
+              value={season}
+              onValueChange={(v) => {
+                setSeason(v as ClothingSeason);
+                unmarkAi("season");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -553,6 +645,17 @@ function AddItemPage() {
         </div>
 
         <div className="space-y-2">
+          <FieldLabel fromAi={aiFields.has("occasions")}>Ocasiones</FieldLabel>
+          <OccasionsPicker
+            value={occasions}
+            onChange={(next) => {
+              setOccasions(next);
+              unmarkAi("occasions");
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="notes">Notas</Label>
           <Textarea
             id="notes"
@@ -561,6 +664,7 @@ function AddItemPage() {
             rows={3}
           />
         </div>
+
 
         {submitError && (
           <div
