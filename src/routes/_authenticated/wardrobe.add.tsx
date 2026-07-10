@@ -269,6 +269,12 @@ function AddItemPage() {
     });
   }
 
+  const aiHl = (field: string) =>
+    aiFields.has(field)
+      ? "ring-2 ring-primary/40 border-primary/50 bg-primary/5"
+      : "";
+
+
   function applyAiResult(res: {
     category: string | null;
     subcategory: string | null;
