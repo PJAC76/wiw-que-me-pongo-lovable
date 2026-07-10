@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Camera, Loader2, Shirt } from "lucide-react";
+import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { OccasionsPicker } from "@/components/occasions-picker";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
@@ -46,10 +47,14 @@ function EditItemPage() {
   const [ready, setReady] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
+  const [subcategory, setSubcategory] = useState("");
   const [color, setColor] = useState("");
+  const [secondaryColor, setSecondaryColor] = useState("");
   const [brand, setBrand] = useState("");
   const [size, setSize] = useState("");
+  const [material, setMaterial] = useState("");
   const [season, setSeason] = useState<ClothingSeason>("all");
+  const [occasions, setOccasions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -59,10 +64,14 @@ function EditItemPage() {
     if (!item || ready) return;
     setName(item.name ?? "");
     setCategory(item.category);
+    setSubcategory(item.subcategory ?? "");
     setColor(item.color ?? "");
+    setSecondaryColor(item.secondary_color ?? "");
     setBrand(item.brand ?? "");
     setSize(item.size ?? "");
+    setMaterial(item.material ?? "");
     setSeason(item.seasons?.[0] ?? "all");
+    setOccasions(item.occasions ?? []);
     setNotes(item.notes ?? "");
     setReady(true);
   }, [item, ready]);
@@ -102,10 +111,14 @@ function EditItemPage() {
       return updateClothingItem(item.id, {
         name: name.trim() || null,
         category,
+        subcategory: subcategory.trim() || null,
         color: color.trim() || null,
+        secondary_color: secondaryColor.trim() || null,
         brand: brand.trim() || null,
         size: size.trim() || null,
+        material: material.trim() || null,
         seasons: [season],
+        occasions,
         notes: notes.trim() || null,
         image_url,
         storage_path,
@@ -164,7 +177,6 @@ function EditItemPage() {
                 <span className="text-sm">Toca para cambiar la foto</span>
               </div>
             )}
-            {!currentImage && <Shirt className="hidden" />}
           </button>
           <input
             ref={fileInput}
@@ -191,20 +203,31 @@ function EditItemPage() {
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
-          <div className="space-y-2">
-            <Label>Categoría</Label>
-            <Select value={category} onValueChange={(v) => setCategory(v as ClothingCategory)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
-                  <SelectItem key={k} value={k}>
-                    {CATEGORY_LABELS[k]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Categoría</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as ClothingCategory)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
+                    <SelectItem key={k} value={k}>
+                      {CATEGORY_LABELS[k]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subcategory">Subcategoría</Label>
+              <Input
+                id="subcategory"
+                value={subcategory}
+                onChange={(e) => setSubcategory(e.target.value)}
+                placeholder="Camisa, vaquero…"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -213,8 +236,29 @@ function EditItemPage() {
               <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="secondaryColor">Color secundario</Label>
+              <Input
+                id="secondaryColor"
+                value={secondaryColor}
+                onChange={(e) => setSecondaryColor(e.target.value)}
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
               <Label htmlFor="brand">Marca</Label>
               <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="material">Material</Label>
+              <Input
+                id="material"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="Algodón, lino…"
+              />
             </div>
           </div>
 
@@ -238,6 +282,11 @@ function EditItemPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Ocasiones</Label>
+            <OccasionsPicker value={occasions} onChange={setOccasions} />
           </div>
 
           <div className="space-y-2">

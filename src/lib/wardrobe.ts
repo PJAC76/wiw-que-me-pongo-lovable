@@ -51,6 +51,7 @@ export interface ClothingItem {
   category: ClothingCategory;
   subcategory: string | null;
   color: string | null;
+  secondary_color: string | null;
   brand: string | null;
   size: string | null;
   material: string | null;
@@ -171,10 +172,14 @@ export async function createClothingItem(input: NewClothingItemInput): Promise<C
 export interface UpdateClothingItemInput {
   name?: string | null;
   category?: ClothingCategory;
+  subcategory?: string | null;
   color?: string | null;
+  secondary_color?: string | null;
   brand?: string | null;
   size?: string | null;
+  material?: string | null;
   seasons?: ClothingSeason[];
+  occasions?: string[];
   notes?: string | null;
   image_url?: string | null;
   storage_path?: string | null;
