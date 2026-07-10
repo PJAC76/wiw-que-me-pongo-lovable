@@ -641,7 +641,7 @@ function AddItemPage() {
                 <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
                   <Sparkles className="h-2.5 w-2.5" /> IA
                 </span>
-                se rellenaron automáticamente. Puedes editarlos antes de guardar.
+                se rellenaron automáticamente y aparecen resaltados en azul. Puedes editarlos antes de guardar.
               </span>
             </div>
             <Button
