@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, Sparkles, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { AiDetectionStatus } from "@/components/ai-detection-status";
 import { Button } from "@/components/ui/button";
@@ -180,6 +180,17 @@ function AddItemPage() {
   const [occasions, setOccasions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+  const [aiSnapshot, setAiSnapshot] = useState<{
+    category: ClothingCategory;
+    subcategory: string;
+    color: string;
+    secondaryColor: string;
+    brand: string;
+    material: string;
+    season: ClothingSeason;
+    occasions: string[];
+    fields: string[];
+  } | null>(null);
 
   const aiDetection = useAiDetection();
 
@@ -244,7 +255,37 @@ function AddItemPage() {
       filled.push("occasions");
     }
     markAi(filled);
+    setAiSnapshot({
+      category: (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)
+        ? (res.category as ClothingCategory)
+        : category),
+      subcategory: res.subcategory ?? "",
+      color: res.primary_color ?? "",
+      secondaryColor: res.secondary_colors?.length ? res.secondary_colors.join(", ") : "",
+      brand: res.brand_guess ?? "",
+      material: res.material ?? "",
+      season: (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)
+        ? (res.season as ClothingSeason)
+        : season),
+      occasions: res.occasions ?? [],
+      fields: filled,
+    });
   }
+
+  function restoreAiSnapshot() {
+    if (!aiSnapshot) return;
+    setCategory(aiSnapshot.category);
+    setSubcategory(aiSnapshot.subcategory);
+    setColor(aiSnapshot.color);
+    setSecondaryColor(aiSnapshot.secondaryColor);
+    setBrand(aiSnapshot.brand);
+    setMaterial(aiSnapshot.material);
+    setSeason(aiSnapshot.season);
+    setOccasions(aiSnapshot.occasions);
+    setAiFields(new Set(aiSnapshot.fields));
+    toast.success("Se restauraron los valores detectados por IA");
+  }
+
 
   async function runDetection() {
     if (!file) return;
@@ -348,6 +389,8 @@ function AddItemPage() {
   function pickFile(f: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     aiDetection.reset();
+    setAiSnapshot(null);
+    setAiFields(new Set());
     if (!f) {
       setFile(null);
       setPreviewUrl(null);
@@ -494,16 +537,29 @@ function AddItemPage() {
 
 
 
-        {aiFields.size > 0 && (
-          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
-            <span className="font-medium">Detección IA aplicada.</span>{" "}
-            <span className="text-muted-foreground">
-              Los campos marcados con
-              <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                <Sparkles className="h-2.5 w-2.5" /> IA
+        {aiSnapshot && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <div className="flex-1">
+              <span className="font-medium">Detección IA aplicada.</span>{" "}
+              <span className="text-muted-foreground">
+                Los campos marcados con
+                <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                  <Sparkles className="h-2.5 w-2.5" /> IA
+                </span>
+                se rellenaron automáticamente. Puedes editarlos antes de guardar.
               </span>
-              se rellenaron automáticamente. Puedes editarlos antes de guardar.
-            </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={restoreAiSnapshot}
+              disabled={mutation.isPending}
+              className="shrink-0 gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restaurar IA
+            </Button>
           </div>
         )}
 
