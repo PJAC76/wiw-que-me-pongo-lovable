@@ -169,28 +169,80 @@ function AddItemPage() {
   const [submitError, setSubmitError] = useState<SubmitError | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
+  const [subcategory, setSubcategory] = useState("");
   const [color, setColor] = useState("");
+  const [secondaryColor, setSecondaryColor] = useState("");
   const [brand, setBrand] = useState("");
   const [size, setSize] = useState("");
+  const [material, setMaterial] = useState("");
   const [season, setSeason] = useState<ClothingSeason>("all");
+  const [occasions, setOccasions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [aiFields, setAiFields] = useState<Set<string>>(new Set());
 
   const aiDetection = useAiDetection();
 
+  function markAi(fields: string[]) {
+    setAiFields((prev) => {
+      const next = new Set(prev);
+      for (const f of fields) next.add(f);
+      return next;
+    });
+  }
+
+  function unmarkAi(field: string) {
+    setAiFields((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  }
+
   function applyAiResult(res: {
     category: string | null;
+    subcategory: string | null;
     primary_color: string | null;
+    secondary_colors: string[];
     season: string | null;
+    occasions: string[];
+    material: string | null;
     brand_guess: string | null;
   }) {
+    const filled: string[] = [];
     if (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)) {
       setCategory(res.category as ClothingCategory);
+      filled.push("category");
     }
     if (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)) {
       setSeason(res.season as ClothingSeason);
+      filled.push("season");
     }
-    if (!color && res.primary_color) setColor(res.primary_color);
-    if (!brand && res.brand_guess) setBrand(res.brand_guess);
+    if (res.subcategory) {
+      setSubcategory(res.subcategory);
+      filled.push("subcategory");
+    }
+    if (res.primary_color) {
+      setColor(res.primary_color);
+      filled.push("color");
+    }
+    if (res.secondary_colors?.length) {
+      setSecondaryColor(res.secondary_colors.join(", "));
+      filled.push("secondaryColor");
+    }
+    if (res.material) {
+      setMaterial(res.material);
+      filled.push("material");
+    }
+    if (res.brand_guess) {
+      setBrand(res.brand_guess);
+      filled.push("brand");
+    }
+    if (res.occasions?.length) {
+      setOccasions(res.occasions);
+      filled.push("occasions");
+    }
+    markAi(filled);
   }
 
   async function runDetection() {
@@ -198,7 +250,7 @@ function AddItemPage() {
     const res = await aiDetection.detect(file);
     if (res) {
       applyAiResult(res);
-      toast.success("Detección aplicada", {
+      toast.success("Detección aplicada — revisa y edita antes de guardar", {
         description: `Confianza ${(res.confidence * 100).toFixed(0)}% · ${res.model}`,
       });
     }
