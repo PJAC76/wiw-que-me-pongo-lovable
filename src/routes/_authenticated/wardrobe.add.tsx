@@ -180,6 +180,17 @@ function AddItemPage() {
   const [occasions, setOccasions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [aiFields, setAiFields] = useState<Set<string>>(new Set());
+  const [aiSnapshot, setAiSnapshot] = useState<{
+    category: ClothingCategory;
+    subcategory: string;
+    color: string;
+    secondaryColor: string;
+    brand: string;
+    material: string;
+    season: ClothingSeason;
+    occasions: string[];
+    fields: string[];
+  } | null>(null);
 
   const aiDetection = useAiDetection();
 
