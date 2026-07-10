@@ -529,6 +529,7 @@ function AddItemPage() {
         className="flex-1 space-y-5 px-6 pb-32"
         onSubmit={(e) => {
           e.preventDefault();
+          if (!validateForm()) return;
           mutation.mutate();
         }}
       >
