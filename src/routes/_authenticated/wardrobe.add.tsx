@@ -389,6 +389,8 @@ function AddItemPage() {
   function pickFile(f: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     aiDetection.reset();
+    setAiSnapshot(null);
+    setAiFields(new Set());
     if (!f) {
       setFile(null);
       setPreviewUrl(null);
