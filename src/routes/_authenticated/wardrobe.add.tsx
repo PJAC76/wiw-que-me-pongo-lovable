@@ -269,6 +269,12 @@ function AddItemPage() {
     });
   }
 
+  const aiHl = (field: string) =>
+    aiFields.has(field)
+      ? "ring-2 ring-primary/40 border-primary/50 bg-primary/5"
+      : "";
+
+
   function applyAiResult(res: {
     category: string | null;
     subcategory: string | null;
@@ -635,7 +641,7 @@ function AddItemPage() {
                 <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
                   <Sparkles className="h-2.5 w-2.5" /> IA
                 </span>
-                se rellenaron automáticamente. Puedes editarlos antes de guardar.
+                se rellenaron automáticamente y aparecen resaltados en azul. Puedes editarlos antes de guardar.
               </span>
             </div>
             <Button
@@ -655,7 +661,7 @@ function AddItemPage() {
         <div className="space-y-2">
           <FieldLabel htmlFor="name" fromAi={aiFields.has("name")}>Nombre</FieldLabel>
           <Input
-            id="name"
+            id="name" className={aiHl("name")} data-ai={aiFields.has("name") || undefined}
             value={name}
             aria-invalid={fieldErrors.name ? true : undefined}
             maxLength={100}
@@ -680,7 +686,7 @@ function AddItemPage() {
                 if (fieldErrors.category) setFieldErrors((p) => ({ ...p, category: undefined }));
               }}
             >
-              <SelectTrigger aria-invalid={fieldErrors.category ? true : undefined}>
+              <SelectTrigger aria-invalid={fieldErrors.category ? true : undefined} className={aiHl("category")} data-ai={aiFields.has("category") || undefined}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -698,7 +704,7 @@ function AddItemPage() {
               Subcategoría
             </FieldLabel>
             <Input
-              id="subcategory"
+              id="subcategory" className={aiHl("subcategory")} data-ai={aiFields.has("subcategory") || undefined}
               value={subcategory}
               maxLength={60}
               aria-invalid={fieldErrors.subcategory ? true : undefined}
@@ -717,7 +723,7 @@ function AddItemPage() {
           <div className="space-y-2">
             <FieldLabel htmlFor="color" fromAi={aiFields.has("color")}>Color</FieldLabel>
             <Input
-              id="color"
+              id="color" className={aiHl("color")} data-ai={aiFields.has("color") || undefined}
               value={color}
               maxLength={40}
               aria-invalid={fieldErrors.color ? true : undefined}
@@ -737,7 +743,7 @@ function AddItemPage() {
               Color secundario
             </FieldLabel>
             <Input
-              id="secondaryColor"
+              id="secondaryColor" className={aiHl("secondaryColor")} data-ai={aiFields.has("secondaryColor") || undefined}
               value={secondaryColor}
               maxLength={80}
               aria-invalid={fieldErrors.secondaryColor ? true : undefined}
@@ -756,7 +762,7 @@ function AddItemPage() {
           <div className="space-y-2">
             <FieldLabel htmlFor="brand" fromAi={aiFields.has("brand")}>Marca</FieldLabel>
             <Input
-              id="brand"
+              id="brand" className={aiHl("brand")} data-ai={aiFields.has("brand") || undefined}
               value={brand}
               maxLength={60}
               aria-invalid={fieldErrors.brand ? true : undefined}
@@ -774,7 +780,7 @@ function AddItemPage() {
               Material
             </FieldLabel>
             <Input
-              id="material"
+              id="material" className={aiHl("material")} data-ai={aiFields.has("material") || undefined}
               value={material}
               maxLength={60}
               aria-invalid={fieldErrors.material ? true : undefined}
@@ -814,7 +820,7 @@ function AddItemPage() {
                 if (fieldErrors.season) setFieldErrors((p) => ({ ...p, season: undefined }));
               }}
             >
-              <SelectTrigger aria-invalid={fieldErrors.season ? true : undefined}>
+              <SelectTrigger aria-invalid={fieldErrors.season ? true : undefined} className={aiHl("season")} data-ai={aiFields.has("season") || undefined}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -831,6 +837,7 @@ function AddItemPage() {
 
         <div className="space-y-2">
           <FieldLabel fromAi={aiFields.has("occasions")}>Ocasiones</FieldLabel>
+          <div className={`rounded-md ${aiHl("occasions")}`.trim()} data-ai={aiFields.has("occasions") || undefined}>
           <OccasionsPicker
             value={occasions}
             onChange={(next) => {
@@ -839,6 +846,7 @@ function AddItemPage() {
               if (fieldErrors.occasions) setFieldErrors((p) => ({ ...p, occasions: undefined }));
             }}
           />
+          </div>
           <FieldError message={fieldErrors.occasions} />
         </div>
 
