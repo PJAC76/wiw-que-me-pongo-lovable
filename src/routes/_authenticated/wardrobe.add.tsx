@@ -957,3 +957,13 @@ function FieldLabel({
     </div>
   );
 }
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="h-3 w-3" />
+      {message}
+    </p>
+  );
+}
