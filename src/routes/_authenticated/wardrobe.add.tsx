@@ -248,6 +248,7 @@ function AddItemPage() {
     occasions: string[];
     fields: string[];
   } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
   const aiDetection = useAiDetection();
 
