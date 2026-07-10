@@ -30,16 +30,96 @@ jobs:
       SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
     steps:
-      - name: Guard — required secrets present
+      - name: Guard — required secrets present & well-formed
+        env:
+          EXPECTED_PROJECT_REF: gjtjejluwrjnntyzrsks
+          EXPECTED_SUPABASE_URL: https://gjtjejluwrjnntyzrsks.supabase.co
         run: |
+          set -u
+          fail=0
+
+          # 1) Presencia
           missing=()
-          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
+          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID; do
             if [ -z "${!v:-}" ]; then missing+=("$v"); fi
           done
           if [ ${#missing[@]} -gt 0 ]; then
             echo "::error::Missing required secrets: ${missing[*]}"
+            fail=1
+          fi
+
+          # 2) Sin espacios/comillas/saltos internos (síntoma típico de truncado al pegar)
+          check_clean() {
+            local name="$1" val="${!1:-}"
+            [ -z "$val" ] && return 0
+            case "$val" in
+              *[[:space:]]*|*\"*|*\'*)
+                echo "::error::Secret '$name' contiene espacios o comillas — pegar sin envolver en \"\" ni ''"
+                fail=1 ;;
+            esac
+          }
+          for v in TEST_EMAIL TEST_PASSWORD VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY VITE_SUPABASE_PROJECT_ID; do
+            check_clean "$v"
+          done
+
+          # 3) Longitud mínima razonable
+          min_len() {
+            local name="$1" min="$2" val="${!1:-}"
+            [ -z "$val" ] && return 0
+            if [ "${#val}" -lt "$min" ]; then
+              echo "::error::Secret '$name' parece truncado (len=${#val}, mínimo esperado=$min)"
+              fail=1
+            fi
+          }
+          min_len TEST_PASSWORD 12
+          min_len VITE_SUPABASE_PUBLISHABLE_KEY 40
+          min_len VITE_SUPABASE_URL 30
+
+          # 4) Coincidencia con el proyecto esperado (previene cruces entre proyectos Supabase)
+          if [ -n "${VITE_SUPABASE_URL:-}" ] && [ "$VITE_SUPABASE_URL" != "$EXPECTED_SUPABASE_URL" ]; then
+            echo "::error::VITE_SUPABASE_URL no coincide con el proyecto esperado ($EXPECTED_SUPABASE_URL)"
+            fail=1
+          fi
+          if [ -n "${VITE_SUPABASE_PROJECT_ID:-}" ] && [ "$VITE_SUPABASE_PROJECT_ID" != "$EXPECTED_PROJECT_REF" ]; then
+            echo "::error::VITE_SUPABASE_PROJECT_ID no coincide con $EXPECTED_PROJECT_REF"
+            fail=1
+          fi
+
+          # 5) Formato de publishable key (sb_publishable_* o JWT eyJ...)
+          if [ -n "${VITE_SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            case "$VITE_SUPABASE_PUBLISHABLE_KEY" in
+              sb_publishable_*|eyJ*) ;;
+              *) echo "::error::VITE_SUPABASE_PUBLISHABLE_KEY con formato inesperado (esperado 'sb_publishable_...' o JWT 'eyJ...')"; fail=1 ;;
+            esac
+          fi
+
+          # 6) Email con forma mínima
+          if [ -n "${TEST_EMAIL:-}" ]; then
+            case "$TEST_EMAIL" in
+              *@*.*) ;;
+              *) echo "::error::TEST_EMAIL no parece un email válido"; fail=1 ;;
+            esac
+          fi
+
+          # 7) (Opcional Fase 9) Validar SUPABASE_SERVICE_ROLE_KEY si está presente
+          if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            case "$SUPABASE_SERVICE_ROLE_KEY" in
+              *[[:space:]]*|*\"*|*\'*)
+                echo "::error::SUPABASE_SERVICE_ROLE_KEY contiene espacios/comillas"; fail=1 ;;
+            esac
+            # JWT esperado: 3 partes separadas por '.'
+            parts=$(awk -F'.' '{print NF}' <<< "$SUPABASE_SERVICE_ROLE_KEY")
+            if [ "$parts" -ne 3 ] && [[ "$SUPABASE_SERVICE_ROLE_KEY" != sb_secret_* ]]; then
+              echo "::error::SUPABASE_SERVICE_ROLE_KEY no es JWT de 3 partes ni 'sb_secret_*' (parts=$parts, len=${#SUPABASE_SERVICE_ROLE_KEY})"
+              fail=1
+            fi
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::Guard falló — corrige los secretos en Settings → Secrets → Actions antes de re-lanzar."
             exit 1
           fi
+          echo "Guard OK: secretos presentes, sin truncar y alineados con $EXPECTED_PROJECT_REF"
 
       - uses: actions/checkout@v5
 
