@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAiDetection } from "@/hooks/use-ai-detection";
+import { OccasionsPicker } from "@/components/occasions-picker";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
