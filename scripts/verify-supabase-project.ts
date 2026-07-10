@@ -93,9 +93,11 @@ async function checkPublishable() {
       return;
     }
   }
-  // Prueba real: la key debe autenticar contra el REST del proyecto esperado.
+  // Prueba real: la key debe autenticar contra el propio proyecto esperado.
+  // Usamos /auth/v1/settings porque acepta publishable/anon key y no exige
+  // secret key ni sesión (los endpoints /rest/v1 raíz sí piden secret).
   try {
-    const res = await fetch(`${EXPECTED_URL}/rest/v1/?select=1`, {
+    const res = await fetch(`${EXPECTED_URL}/auth/v1/settings`, {
       headers: { apikey: publishable, Authorization: `Bearer ${publishable}` },
     });
     if (res.status === 401 || res.status === 403) {
@@ -106,8 +108,8 @@ async function checkPublishable() {
       );
       return;
     }
-    if (!res.ok && res.status !== 404) {
-      err(`REST devolvió HTTP ${res.status} al validar la publishable key`);
+    if (!res.ok) {
+      err(`/auth/v1/settings devolvió HTTP ${res.status} al validar la publishable key`);
       return;
     }
     ok(`Publishable key acepta contra ${EXPECTED_URL} (HTTP ${res.status})`);
