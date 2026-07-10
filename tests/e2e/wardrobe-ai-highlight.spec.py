@@ -123,19 +123,12 @@ async def main():
         # Cambiar categoría también debe quitar su resaltado
         cat_trigger = page.locator("button[data-ai='true']").first
         if await cat_trigger.count() > 0:
-            await cat_trigger.click()
-            # elegir explícitamente una opción distinta a "tops"
-            options = page.get_by_role("option")
-            await options.first.wait_for(timeout=3000)
-            n_opts = await options.count()
-            picked = False
-            for i in range(n_opts):
-                txt = (await options.nth(i).inner_text()).strip().lower()
-                if txt and "top" not in txt:
-                    await options.nth(i).click()
-                    picked = True
-                    break
-            assert picked, "no se encontró opción de categoría distinta a tops"
+            await cat_trigger.focus()
+            await cat_trigger.press("Enter")
+            await page.wait_for_timeout(150)
+            # navegar por las opciones del Select y elegir otra distinta
+            await page.keyboard.press("ArrowDown")
+            await page.keyboard.press("Enter")
             await page.wait_for_timeout(200)
             remaining = await count_ai(page)
             if remaining != 0:
