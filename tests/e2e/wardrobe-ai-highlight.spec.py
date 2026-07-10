@@ -138,6 +138,11 @@ async def main():
             assert picked, "no se encontró opción de categoría distinta a tops"
             await page.wait_for_timeout(200)
             remaining = await count_ai(page)
+            if remaining != 0:
+                info = await page.locator("[data-ai='true']").evaluate_all(
+                    "els => els.map(e => ({tag: e.tagName, id: e.id, cls: e.className.slice(0,80)}))"
+                )
+                print("STILL AI:", info)
             assert remaining == 0, f"tras editar todos los campos IA no debería quedar ninguno, quedan {remaining}"
 
         await page.screenshot(path=str(SCREENS / "3_all_cleared.png"))
