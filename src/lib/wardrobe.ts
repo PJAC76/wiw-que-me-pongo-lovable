@@ -51,6 +51,7 @@ export interface ClothingItem {
   category: ClothingCategory;
   subcategory: string | null;
   color: string | null;
+  secondary_color: string | null;
   brand: string | null;
   size: string | null;
   material: string | null;
