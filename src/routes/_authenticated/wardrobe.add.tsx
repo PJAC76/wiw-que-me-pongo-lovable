@@ -255,7 +255,35 @@ function AddItemPage() {
       filled.push("occasions");
     }
     markAi(filled);
+    setAiSnapshot({
+      category: (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)
+        ? (res.category as ClothingCategory)
+        : category),
+      subcategory: res.subcategory ?? "",
+      color: res.primary_color ?? "",
+      secondaryColor: res.secondary_colors?.length ? res.secondary_colors.join(", ") : "",
+      brand: res.brand_guess ?? "",
+      material: res.material ?? "",
+      season: (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)
+        ? (res.season as ClothingSeason)
+        : season),
+      occasions: res.occasions ?? [],
+      fields: filled,
+    });
   }
+
+  function restoreAiSnapshot() {
+    if (!aiSnapshot) return;
+    setCategory(aiSnapshot.category);
+    setSubcategory(aiSnapshot.subcategory);
+    setColor(aiSnapshot.color);
+    setSecondaryColor(aiSnapshot.secondaryColor);
+    setBrand(aiSnapshot.brand);
+    setMaterial(aiSnapshot.material);
+    setSeason(aiSnapshot.season);
+    setOccasions(aiSnapshot.occasions);
+    setAiFields(new Set(aiSnapshot.fields));
+    toast.success("Se restauraron los valores detectados por IA");
 
   async function runDetection() {
     if (!file) return;
