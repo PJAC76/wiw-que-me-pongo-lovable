@@ -363,6 +363,36 @@ function AddItemPage() {
     enabled: !!user,
   });
 
+  function validateForm(): boolean {
+    const result = formSchema.safeParse({
+      name,
+      category,
+      subcategory,
+      color,
+      secondaryColor,
+      brand,
+      size,
+      material,
+      season,
+      occasions,
+      notes,
+      hasImage: !!file,
+    });
+    if (result.success) {
+      setFieldErrors({});
+      return true;
+    }
+    const errs: FieldErrors = {};
+    for (const issue of result.error.issues) {
+      const key = issue.path[0] as keyof FieldErrors | undefined;
+      if (key && !errs[key]) errs[key] = issue.message;
+    }
+    setFieldErrors(errs);
+    const first = result.error.issues[0]?.message ?? "Revisa los campos marcados";
+    toast.error("Formulario incompleto", { description: first });
+    return false;
+  }
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (!user) {
