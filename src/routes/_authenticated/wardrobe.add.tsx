@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, Sparkles, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, Camera, CloudOff, Database, HardDrive, Loader2, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { AiDetectionStatus } from "@/components/ai-detection-status";
 import { Button } from "@/components/ui/button";
