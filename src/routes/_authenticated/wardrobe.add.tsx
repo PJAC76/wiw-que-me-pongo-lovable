@@ -27,6 +27,7 @@ import {
   type ClothingCategory,
   type ClothingSeason,
 } from "@/lib/wardrobe";
+import { z } from "zod";
 
 const KNOWN_CATEGORIES = Object.keys(CATEGORY_LABELS) as ClothingCategory[];
 const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
@@ -34,6 +35,62 @@ const KNOWN_SEASONS = Object.keys(SEASON_LABELS) as ClothingSeason[];
 const ACCEPTED_MIME = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const ACCEPT_ATTR = ACCEPTED_MIME.join(",");
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
+const optionalTrimmed = (max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .max(max, { message: `${label} no puede superar ${max} caracteres` })
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : undefined));
+
+const formSchema = z
+  .object({
+    name: optionalTrimmed(100, "El nombre"),
+    category: z.enum(KNOWN_CATEGORIES as [ClothingCategory, ...ClothingCategory[]], {
+      message: "Selecciona una categoría",
+    }),
+    subcategory: optionalTrimmed(60, "La subcategoría"),
+    color: optionalTrimmed(40, "El color"),
+    secondaryColor: optionalTrimmed(80, "El color secundario"),
+    brand: optionalTrimmed(60, "La marca"),
+    size: optionalTrimmed(20, "La talla"),
+    material: optionalTrimmed(60, "El material"),
+    season: z.enum(KNOWN_SEASONS as [ClothingSeason, ...ClothingSeason[]], {
+      message: "Selecciona una temporada",
+    }),
+    occasions: z
+      .array(z.string().trim().min(1).max(40))
+      .max(10, { message: "Como máximo 10 ocasiones" }),
+    notes: z
+      .string()
+      .trim()
+      .max(500, { message: "Las notas no pueden superar 500 caracteres" })
+      .optional()
+      .transform((v) => (v && v.length > 0 ? v : undefined)),
+    hasImage: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.hasImage && !data.name && !data.brand) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["name"],
+        message: "Añade una foto o al menos un nombre o marca",
+      });
+    }
+    if (data.secondaryColor && !data.color) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["color"],
+        message: "Indica el color principal si añades uno secundario",
+      });
+    }
+  });
+
+type FieldErrors = Partial<Record<
+  "name" | "category" | "subcategory" | "color" | "secondaryColor" | "brand" | "size" | "material" | "season" | "occasions" | "notes",
+  string
+>>;
 
 type SubmitErrorKind = "validation" | "network" | "storage" | "database" | "unknown";
 
