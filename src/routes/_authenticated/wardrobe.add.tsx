@@ -537,16 +537,29 @@ function AddItemPage() {
 
 
 
-        {aiFields.size > 0 && (
-          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
-            <span className="font-medium">Detección IA aplicada.</span>{" "}
-            <span className="text-muted-foreground">
-              Los campos marcados con
-              <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
-                <Sparkles className="h-2.5 w-2.5" /> IA
+        {aiSnapshot && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <div className="flex-1">
+              <span className="font-medium">Detección IA aplicada.</span>{" "}
+              <span className="text-muted-foreground">
+                Los campos marcados con
+                <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                  <Sparkles className="h-2.5 w-2.5" /> IA
+                </span>
+                se rellenaron automáticamente. Puedes editarlos antes de guardar.
               </span>
-              se rellenaron automáticamente. Puedes editarlos antes de guardar.
-            </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={restoreAiSnapshot}
+              disabled={mutation.isPending}
+              className="shrink-0 gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Restaurar IA
+            </Button>
           </div>
         )}
 
