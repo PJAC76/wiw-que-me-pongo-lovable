@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAiDetection } from "@/hooks/use-ai-detection";
+import { OccasionsPicker } from "@/components/occasions-picker";
 import { useAuth } from "@/hooks/use-auth";
 import {
   CATEGORY_LABELS,
@@ -169,28 +170,80 @@ function AddItemPage() {
   const [submitError, setSubmitError] = useState<SubmitError | null>(null);
   const [name, setName] = useState("");
   const [category, setCategory] = useState<ClothingCategory>("tops");
+  const [subcategory, setSubcategory] = useState("");
   const [color, setColor] = useState("");
+  const [secondaryColor, setSecondaryColor] = useState("");
   const [brand, setBrand] = useState("");
   const [size, setSize] = useState("");
+  const [material, setMaterial] = useState("");
   const [season, setSeason] = useState<ClothingSeason>("all");
+  const [occasions, setOccasions] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [aiFields, setAiFields] = useState<Set<string>>(new Set());
 
   const aiDetection = useAiDetection();
 
+  function markAi(fields: string[]) {
+    setAiFields((prev) => {
+      const next = new Set(prev);
+      for (const f of fields) next.add(f);
+      return next;
+    });
+  }
+
+  function unmarkAi(field: string) {
+    setAiFields((prev) => {
+      if (!prev.has(field)) return prev;
+      const next = new Set(prev);
+      next.delete(field);
+      return next;
+    });
+  }
+
   function applyAiResult(res: {
     category: string | null;
+    subcategory: string | null;
     primary_color: string | null;
+    secondary_colors: string[];
     season: string | null;
+    occasions: string[];
+    material: string | null;
     brand_guess: string | null;
   }) {
+    const filled: string[] = [];
     if (res.category && KNOWN_CATEGORIES.includes(res.category as ClothingCategory)) {
       setCategory(res.category as ClothingCategory);
+      filled.push("category");
     }
     if (res.season && KNOWN_SEASONS.includes(res.season as ClothingSeason)) {
       setSeason(res.season as ClothingSeason);
+      filled.push("season");
     }
-    if (!color && res.primary_color) setColor(res.primary_color);
-    if (!brand && res.brand_guess) setBrand(res.brand_guess);
+    if (res.subcategory) {
+      setSubcategory(res.subcategory);
+      filled.push("subcategory");
+    }
+    if (res.primary_color) {
+      setColor(res.primary_color);
+      filled.push("color");
+    }
+    if (res.secondary_colors?.length) {
+      setSecondaryColor(res.secondary_colors.join(", "));
+      filled.push("secondaryColor");
+    }
+    if (res.material) {
+      setMaterial(res.material);
+      filled.push("material");
+    }
+    if (res.brand_guess) {
+      setBrand(res.brand_guess);
+      filled.push("brand");
+    }
+    if (res.occasions?.length) {
+      setOccasions(res.occasions);
+      filled.push("occasions");
+    }
+    markAi(filled);
   }
 
   async function runDetection() {
@@ -198,7 +251,7 @@ function AddItemPage() {
     const res = await aiDetection.detect(file);
     if (res) {
       applyAiResult(res);
-      toast.success("Detección aplicada", {
+      toast.success("Detección aplicada — revisa y edita antes de guardar", {
         description: `Confianza ${(res.confidence * 100).toFixed(0)}% · ${res.model}`,
       });
     }
@@ -252,10 +305,14 @@ function AddItemPage() {
           wardrobe_id: wardrobe.id,
           name: name.trim() || null,
           category,
+          subcategory: subcategory.trim() || null,
           color: color.trim() || null,
+          secondary_color: secondaryColor.trim() || null,
           brand: brand.trim() || null,
           size: size.trim() || null,
+          material: material.trim() || null,
           seasons: [season],
+          occasions,
           notes: notes.trim() || null,
           image_url,
           storage_path,
@@ -437,40 +494,126 @@ function AddItemPage() {
 
 
 
+        {aiFields.size > 0 && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <span className="font-medium">Detección IA aplicada.</span>{" "}
+            <span className="text-muted-foreground">
+              Los campos marcados con
+              <span className="mx-1 inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-primary">
+                <Sparkles className="h-2.5 w-2.5" /> IA
+              </span>
+              se rellenaron automáticamente. Puedes editarlos antes de guardar.
+            </span>
+          </div>
+        )}
+
         <div className="space-y-2">
-          <Label htmlFor="name">Nombre</Label>
+          <FieldLabel htmlFor="name" fromAi={aiFields.has("name")}>Nombre</FieldLabel>
           <Input
             id="name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              unmarkAi("name");
+            }}
             placeholder="Camisa lino blanca"
           />
         </div>
 
-        <div className="space-y-2">
-          <Label>Categoría</Label>
-          <Select value={category} onValueChange={(v) => setCategory(v as ClothingCategory)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
-                <SelectItem key={k} value={k}>
-                  {CATEGORY_LABELS[k]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <FieldLabel fromAi={aiFields.has("category")}>Categoría</FieldLabel>
+            <Select
+              value={category}
+              onValueChange={(v) => {
+                setCategory(v as ClothingCategory);
+                unmarkAi("category");
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(CATEGORY_LABELS) as ClothingCategory[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {CATEGORY_LABELS[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <FieldLabel htmlFor="subcategory" fromAi={aiFields.has("subcategory")}>
+              Subcategoría
+            </FieldLabel>
+            <Input
+              id="subcategory"
+              value={subcategory}
+              onChange={(e) => {
+                setSubcategory(e.target.value);
+                unmarkAi("subcategory");
+              }}
+              placeholder="Camisa, vaquero…"
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="color">Color</Label>
-            <Input id="color" value={color} onChange={(e) => setColor(e.target.value)} />
+            <FieldLabel htmlFor="color" fromAi={aiFields.has("color")}>Color</FieldLabel>
+            <Input
+              id="color"
+              value={color}
+              onChange={(e) => {
+                setColor(e.target.value);
+                unmarkAi("color");
+              }}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="brand">Marca</Label>
-            <Input id="brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
+            <FieldLabel
+              htmlFor="secondaryColor"
+              fromAi={aiFields.has("secondaryColor")}
+            >
+              Color secundario
+            </FieldLabel>
+            <Input
+              id="secondaryColor"
+              value={secondaryColor}
+              onChange={(e) => {
+                setSecondaryColor(e.target.value);
+                unmarkAi("secondaryColor");
+              }}
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <FieldLabel htmlFor="brand" fromAi={aiFields.has("brand")}>Marca</FieldLabel>
+            <Input
+              id="brand"
+              value={brand}
+              onChange={(e) => {
+                setBrand(e.target.value);
+                unmarkAi("brand");
+              }}
+            />
+          </div>
+          <div className="space-y-2">
+            <FieldLabel htmlFor="material" fromAi={aiFields.has("material")}>
+              Material
+            </FieldLabel>
+            <Input
+              id="material"
+              value={material}
+              onChange={(e) => {
+                setMaterial(e.target.value);
+                unmarkAi("material");
+              }}
+              placeholder="Algodón, lino…"
+            />
           </div>
         </div>
 
@@ -480,8 +623,14 @@ function AddItemPage() {
             <Input id="size" value={size} onChange={(e) => setSize(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Temporada</Label>
-            <Select value={season} onValueChange={(v) => setSeason(v as ClothingSeason)}>
+            <FieldLabel fromAi={aiFields.has("season")}>Temporada</FieldLabel>
+            <Select
+              value={season}
+              onValueChange={(v) => {
+                setSeason(v as ClothingSeason);
+                unmarkAi("season");
+              }}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -497,6 +646,17 @@ function AddItemPage() {
         </div>
 
         <div className="space-y-2">
+          <FieldLabel fromAi={aiFields.has("occasions")}>Ocasiones</FieldLabel>
+          <OccasionsPicker
+            value={occasions}
+            onChange={(next) => {
+              setOccasions(next);
+              unmarkAi("occasions");
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="notes">Notas</Label>
           <Textarea
             id="notes"
@@ -505,6 +665,7 @@ function AddItemPage() {
             rows={3}
           />
         </div>
+
 
         {submitError && (
           <div
@@ -580,4 +741,25 @@ function ErrorIcon({ kind }: { kind: SubmitErrorKind }) {
   if (kind === "storage") return <HardDrive className={cls} />;
   if (kind === "database") return <Database className={cls} />;
   return <AlertCircle className={cls} />;
+}
+
+function FieldLabel({
+  htmlFor,
+  fromAi,
+  children,
+}: {
+  htmlFor?: string;
+  fromAi?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Label htmlFor={htmlFor}>{children}</Label>
+      {fromAi && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] uppercase tracking-wider text-primary">
+          <Sparkles className="h-2.5 w-2.5" strokeWidth={1.75} /> IA
+        </span>
+      )}
+    </div>
+  );
 }
