@@ -284,6 +284,8 @@ function AddItemPage() {
     setOccasions(aiSnapshot.occasions);
     setAiFields(new Set(aiSnapshot.fields));
     toast.success("Se restauraron los valores detectados por IA");
+  }
+
 
   async function runDetection() {
     if (!file) return;
