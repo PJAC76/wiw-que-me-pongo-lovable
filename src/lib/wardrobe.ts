@@ -145,10 +145,10 @@ export interface NewClothingItemInput {
   category: ClothingCategory;
   subcategory?: string | null;
   color?: string | null;
+  secondary_color?: string | null;
   brand?: string | null;
   size?: string | null;
   material?: string | null;
-  pattern?: string | null;
   price_cents?: number | null;
   seasons?: ClothingSeason[];
   occasions?: string[];
